@@ -100,6 +100,8 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # through it. For example, you can return a torch.FloatTensor. You can also
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
+
+    from torch.distributions import Categorical, Normal
     def forward(self, observation: torch.FloatTensor) -> Any:
         if self.discrete:
             # Use logits network for discrete action space

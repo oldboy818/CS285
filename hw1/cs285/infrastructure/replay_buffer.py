@@ -70,7 +70,7 @@ class ReplayBuffer(object):
                 == self.rews.shape[0]
                 == self.next_obs.shape[0]
                 == self.terminals.shape[0]
-        )
+                )
 
         ## TODO return batch_size number of random entries from each of the 5 component arrays above
         ## HINT 1: use np.random.permutation to sample random indices
