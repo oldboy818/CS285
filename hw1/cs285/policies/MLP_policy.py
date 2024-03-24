@@ -12,7 +12,6 @@ from torch import distributions
 from cs285.infrastructure import pytorch_util as ptu
 from cs285.policies.base_policy import BasePolicy
 
-
 class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     def __init__(self,
@@ -75,13 +74,21 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     ##################################
 
     def get_action(self, obs: np.ndarray) -> np.ndarray:
+        # 확인: obs가 NumPy 배열인 경우 차원을 확인하여 적절히 변환
         if len(obs.shape) > 1:
             observation = obs
         else:
-            observation = obs[None]
+            observation = obs[None]  # 관측값이 하나인 경우 배치 차원 추가
 
         # TODO return the action that the policy prescribes
-        raise NotImplementedError
+        # NumPy 배열을 PyTorch 텐서로 변환
+        obs_tensor = ptu.from_numpy(observation)
+
+        # 모델을 사용하여 행동을 결정하고, 결과로 나오는 텐서를 샘플링
+        action_tensor = self.forward(obs_tensor).sample()  # 여기서 self.forward는 신경망 모델을 나타냄
+
+        # PyTorch 텐서를 NumPy 배열로 변환
+        return ptu.to_numpy(action_tensor)
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
