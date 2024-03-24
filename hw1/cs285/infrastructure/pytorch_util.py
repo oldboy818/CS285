@@ -5,7 +5,6 @@ from torch import nn
 
 Activation = Union[str, nn.Module]
 
-
 _str_to_activation = {
     'relu': nn.ReLU(),
     'tanh': nn.Tanh(),
@@ -16,15 +15,13 @@ _str_to_activation = {
     'identity': nn.Identity(),
 }
 
-
 def build_mlp(
         input_size: int,
         output_size: int,
         n_layers: int,
         size: int,
         activation: Activation = 'tanh',
-        output_activation: Activation = 'identity',
-) -> nn.Module:
+        output_activation: Activation = 'identity',) -> nn.Module:
     """
         Builds a feedforward neural network
 
@@ -40,6 +37,7 @@ def build_mlp(
         returns:
             MLP (nn.Module)
     """
+    # 활성화 함수를 문자열에서 실제 torch.nn 모듈로 매핑
     if isinstance(activation, str):
         activation = _str_to_activation[activation]
     if isinstance(output_activation, str):
@@ -47,7 +45,24 @@ def build_mlp(
 
     # TODO: return a MLP. This should be an instance of nn.Module
     # Note: nn.Sequential is an instance of nn.Module.
-    raise NotImplementedError
+    # MLP 모듈을 담을 리스트를 생성합니다.
+    layers = []
+    
+    # 입력 층을 생성합니다.
+    layers.append(nn.Linear(input_size, size))
+    layers.append(activation)
+    
+    # 숨겨진 층을 생성합니다.
+    for _ in range(n_layers - 1):
+        layers.append(nn.Linear(size, size))
+        layers.append(activation)
+    
+    # 출력 층을 생성합니다.
+    layers.append(nn.Linear(size, output_size))
+    layers.append(output_activation)
+    
+    # Sequential 모듈을 사용하여 모든 층을 하나의 모듈로 결합합니다.
+    return nn.Sequential(*layers)
 
 
 device = None

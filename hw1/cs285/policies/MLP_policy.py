@@ -85,7 +85,8 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         obs_tensor = ptu.from_numpy(observation)
 
         # 모델을 사용하여 행동을 결정하고, 결과로 나오는 텐서를 샘플링
-        action_tensor = self.forward(obs_tensor).sample()  # 여기서 self.forward는 신경망 모델을 나타냄
+        # 여기서 self.forward는 신경망 모델을 나타냄
+        action_tensor = self.forward(obs_tensor).sample()  
 
         # PyTorch 텐서를 NumPy 배열로 변환
         return ptu.to_numpy(action_tensor)
@@ -100,7 +101,16 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor) -> Any:
-        raise NotImplementedError
+        if self.discrete:
+            # Use logits network for discrete action space
+            logits = self.logits_na(observation)
+            return Categorical(logits=logits)
+        else:
+            # Use mean network and logstd for continuous action space
+            mean = self.mean_net(observation)
+            # Create a normal distribution with the mean and the standard deviation
+            std = torch.exp(self.logstd)
+            return Normal(mean, std)
 
 
 #####################################################
