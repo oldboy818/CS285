@@ -12,6 +12,8 @@ from torch import distributions
 from cs285.infrastructure import pytorch_util as ptu
 from cs285.policies.base_policy import BasePolicy
 
+from torch.distributions import Categorical, Normal
+
 class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     def __init__(self,
@@ -86,10 +88,13 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
         # 모델을 사용하여 행동을 결정하고, 결과로 나오는 텐서를 샘플링
         # 여기서 self.forward는 신경망 모델을 나타냄
-        action_tensor = self.forward(obs_tensor).sample()  
-
+        action_tensor = self.forward(obs_tensor)
+        # action = action_tensor.sample()
+        
         # PyTorch 텐서를 NumPy 배열로 변환
-        return ptu.to_numpy(action_tensor)
+        action = ptu.to_numpy(action_tensor)
+
+        return action
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
@@ -101,18 +106,19 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
 
-    from torch.distributions import Categorical, Normal
     def forward(self, observation: torch.FloatTensor) -> Any:
         if self.discrete:
             # Use logits network for discrete action space
             logits = self.logits_na(observation)
-            return Categorical(logits=logits)
+            # return Categorical(logits=logits)
+            return logits
         else:
             # Use mean network and logstd for continuous action space
             mean = self.mean_net(observation)
             # Create a normal distribution with the mean and the standard deviation
             std = torch.exp(self.logstd)
-            return Normal(mean, std)
+            # return Normal(mean, std)
+            return mean
 
 
 #####################################################
@@ -127,8 +133,36 @@ class MLPPolicySL(MLPPolicy):
             self, observations, actions,
             adv_n=None, acs_labels_na=None, qvals=None
     ):
-        # TODO: update the policy and return the loss
-        loss = TODO
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        # # TODO: update the policy and return the loss
+        # loss = TODO
+        # return {
+        #     # You can add extra logging information here, but keep this line
+        #     'Training Loss': ptu.to_numpy(loss),
+        # }
+        # Retrieve relevant objects from self
+        loss_fn = self.loss
+        optimizer = self.optimizer
+
+        # Setup our optimizer for this train step
+        optimizer.zero_grad()
+
+        # Convert our obs into a form usable by our model
+        obs_pt = ptu.from_numpy(observations)
+
+        # Retrieve model output actions
+        model_actions = self(obs_pt)
+
+        # Convert loss inputs to a form usable by the loss object
+        actions_pt = ptu.from_numpy(actions)
+
+        # Calculate loss
+        loss = loss_fn(model_actions, actions_pt)
+
+        # Update parameters
+        loss.backward()
+        optimizer.step()
+
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),
