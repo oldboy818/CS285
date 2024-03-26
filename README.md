@@ -3,7 +3,7 @@ Assignments for [Berkeley CS 285: Deep Reinforcement Learning, Decision Making, 
 # CS285 Fall 2022 Assignments
 
 ### Assignment1 : Imitation Learning
-* Q1: Behavioral Cloning
+* Q1: Behavioral Cloning [__(Done)__]
 * Q2: DAgger
 
 ### Assignment2 : Policy Gradients
