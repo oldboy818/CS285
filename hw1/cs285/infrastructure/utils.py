@@ -33,7 +33,7 @@ def sample_trajectory(env, policy, max_path_length, render=False):
         acs.append(ac)
 
         # take that action and record results
-        ob, rew, done, *extra = env.step(ac)
+        ob, rew, done, _, *extra = env.step(ac)
 
         # record result of taking that action
         steps += 1
@@ -42,7 +42,7 @@ def sample_trajectory(env, policy, max_path_length, render=False):
 
         # TODO end the rollout if the rollout ended
         # HINT: rollout can end due to done, or due to max_path_length
-        rollout_done = done or steps == max_path_length # HINT: this is either 0 or 1
+        rollout_done = done or (steps >= max_path_length) # HINT: this is either 0 or 1
         terminals.append(rollout_done)
 
         if rollout_done:
@@ -62,7 +62,6 @@ def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, r
     paths = []
     
     while timesteps_this_batch < min_timesteps_per_batch:
-
         # TODO
         path = sample_trajectory(env, policy, max_path_length, render)
         timesteps_this_path = get_pathlength(path)
@@ -80,10 +79,12 @@ def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False):
         Hint1: use sample_trajectory to get each path (i.e. rollout) that goes into paths
     """
     paths = []
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     # TODO
     for _ in range(ntraj):
-        paths.append(sample_trajectory(env, policy, max_path_length, render))
+        path = sample_trajectory(env, policy, max_path_length, render)
+        paths.append(path)
+    
     return paths
 
 ############################################

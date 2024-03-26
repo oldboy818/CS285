@@ -19,7 +19,7 @@ class BCAgent(BaseAgent):
             self.agent_params['size'],
             discrete=self.agent_params['discrete'],
             learning_rate=self.agent_params['learning_rate'],
-        )
+                                )
 
         # replay buffer
         self.replay_buffer = ReplayBuffer(self.agent_params['max_replay_buffer_size'])

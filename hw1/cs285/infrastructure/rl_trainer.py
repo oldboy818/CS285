@@ -115,7 +115,7 @@ class RL_Trainer(object):
             self.total_envsteps += envsteps_this_batch
 
             # relabel the collected obs with actions from a provided expert policy
-            if relabel_with_expert and itr>=start_relabel_with_expert:
+            if relabel_with_expert and itr >= start_relabel_with_expert:
                 paths = self.do_relabel_with_expert(expert_policy, paths)  # HW1: implement this function below
 
             # add collected data to replay buffer
@@ -163,7 +163,11 @@ class RL_Trainer(object):
                 # ``` return loaded_paths, 0, None ```
 
                 # (2) collect `self.params['batch_size']` transitions
-
+        # ------------------------------------------------------------------------------------------
+        if (itr == 0) and (load_initial_expertdata is not None):  # If we're in the first iteration
+            loaded_paths = np.load(load_initial_expertdata, allow_pickle=True)
+            return loaded_paths, 0, None
+        # ------------------------------------------------------------------------------------------
         # TODO collect `batch_size` samples to be used for training
         # HINT1: use sample_trajectories from utils
         # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
@@ -187,16 +191,15 @@ class RL_Trainer(object):
         print('\nTraining agent using sampled data from replay buffer...')
         all_logs = []
         for train_step in range(self.params['num_agent_train_steps_per_iter']):
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             # TODO sample some data from the data buffer
             # HINT1: use the agent's sample function
             # HINT2: how much data = self.params['train_batch_size']
-            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.agent.sample(self.params['train_batch_size'])
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.agent.sample(
+                self.params['train_batch_size'])
+
             # TODO use the sampled data to train an agent
             # HINT: use the agent's train function
             # HINT: keep the agent's training log for debugging
-            # train_log = TODO
             train_log = self.agent.train(
                 ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch
             )
@@ -209,6 +212,18 @@ class RL_Trainer(object):
         # TODO relabel collected obsevations (from our policy) with labels from an expert policy
         # HINT: query the policy (using the get_action function) with paths[i]["observation"]
         # and replace paths[i]["action"] with these expert labels
+        for path in paths:
+            expert_actions = []
+            for obs in path["observation"]:
+                # 전문가 정책으로부터 액션을 얻습니다.
+                expert_action = expert_policy.get_action(obs)
+                # 전문가 액션을 리스트에 추가합니다.
+                expert_actions.append(expert_action)
+            # 얻은 액션 리스트를 numpy 배열로 변환합니다.
+            # 여기서는 전문가 액션의 형태를 기존의 액션 차원과 일치시키기 위해 reshape를 사용할 수도 있습니다.
+            expert_actions = np.array(expert_actions).reshape(-1, path["action"].shape[-1])
+            # 기존의 액션을 전문가 액션으로 교체합니다.
+            path["action"] = expert_actions
 
         return paths
 

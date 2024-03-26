@@ -133,29 +133,26 @@ class MLPPolicySL(MLPPolicy):
             self, observations, actions,
             adv_n=None, acs_labels_na=None, qvals=None
     ):
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
         # # TODO: update the policy and return the loss
         # loss = TODO
         # return {
         #     # You can add extra logging information here, but keep this line
         #     'Training Loss': ptu.to_numpy(loss),
         # }
+
         # Retrieve relevant objects from self
         loss_fn = self.loss
         optimizer = self.optimizer
-
         # Setup our optimizer for this train step
         optimizer.zero_grad()
 
-        # Convert our obs into a form usable by our model
+        # nparray에서 Pytorch Tensor로 변환
         obs_pt = ptu.from_numpy(observations)
-
-        # Retrieve model output actions
-        model_actions = self(obs_pt)
-
-        # Convert loss inputs to a form usable by the loss object
+        # loss 계산을 위해 실제 action을 nparray에서 torch-tensor로 변환
         actions_pt = ptu.from_numpy(actions)
 
+        # observation tensor를 신경망에 넣어 action 반환
+        model_actions = self(obs_pt)
         # Calculate loss
         loss = loss_fn(model_actions, actions_pt)
 
