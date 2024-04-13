@@ -89,7 +89,6 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # 모델을 사용하여 행동을 결정하고, 결과로 나오는 텐서를 샘플링
         # 여기서 self.forward는 신경망 모델을 나타냄
         action_tensor = self.forward(obs_tensor)
-        # action = action_tensor.sample()
         
         # PyTorch 텐서를 NumPy 배열로 변환
         action = ptu.to_numpy(action_tensor)
