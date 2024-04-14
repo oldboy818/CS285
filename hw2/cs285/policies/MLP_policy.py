@@ -87,7 +87,19 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # query the policy with observation(s) to get selected action(s)
     def get_action(self, obs: np.ndarray) -> np.ndarray:
         # TODO: get this from HW1
+        if len(obs.shape) > 1:
+            observation = obs
+        else:
+            observation = obs[None]  # 관측값이 하나인 경우 배치 차원 추가
+        # NumPy 배열을 PyTorch 텐서로 변환
+        obs_tensor = ptu.from_numpy(observation)
+        # 신경망 통과시켜 action_distribution 반환. 즉, policy 반환
+        action_tensor = self.forward(obs_tensor).sample()
+        # PyTorch 텐서를 NumPy 배열로 변환
+        action = ptu.to_numpy(action_tensor)
 
+        return action
+    
     # update/train this policy
     def update(self, observations, actions, **kwargs):
         raise NotImplementedError
@@ -134,7 +146,14 @@ class MLPPolicyPG(MLPPolicy):
         # HINT2: you will want to use the `log_prob` method on the distribution returned
             # by the `forward` method
 
-        TODO
+        self.optimizer.zero_grad()
+        # 현재 정책
+        ac_dist = self.forward(observations)
+        log_policy = ac_dist.log_prob(actions)
+        # update the policy using policy gradient
+        loss = -(log_policy * advantages).mean()
+        loss.backward()
+        self.optimizer.step()
 
         if self.nn_baseline:
             ## TODO: update the neural network baseline using the q_values as
