@@ -4,7 +4,7 @@ Assignments for [Berkeley CS 285: Deep Reinforcement Learning, Decision Making, 
 
 ### Assignment1 : Imitation Learning
 * Q1: Behavioral Cloning [__(Done)__](https://github.com/oldboy818/CS285/tree/main/hw1)
-* Q2: DAgger [__(Done)__] (https://github.com/oldboy818/CS285/tree/main/hw1/data)
+* Q2: DAgger [__(Done)__](https://github.com/oldboy818/CS285/tree/main/hw1/data)
 
 ### Assignment2 : Policy Gradients
 * Q1: Reward-to-go
