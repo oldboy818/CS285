@@ -75,18 +75,19 @@ class PGAgent(BaseAgent):
         q_values = []
 
         if not self.reward_to_go:
-            # For each trajectory, compute the discounted return
-            for rewards in rewards_list:
-                discounted_returns = self._discounted_return(rewards)
-                q_values.extend(discounted_returns)
+            # For each trajectory, compute the discounted return and collect them into a 2D list
+            # 각 행은 trajectory 별 discount된 reward, 각 열은 timesteps으로 구성된 2D List
+            q_values = [self._discounted_return(rewards) for rewards in rewards_list]
 
         # Case 2: reward-to-go PG
         # Estimate Q^{pi}(s_t, a_t) by the discounted sum of rewards starting from t
         else:
-        # For each trajectory and each timestep in the trajectory, compute the discounted sum
-            for rewards in rewards_list:
-                discounted_cumsums = self._discounted_cumsum(rewards)
-                q_values.extend(discounted_cumsums)
+            # For each trajectory and each timestep in the trajectory, compute the discounted sum
+            # 각 행은 trajectory 별 discount된 reward-to-go, 각 열은 timesteps으로 구성된 2D List
+            q_values = [self._discounted_cumsum(rewards) for rewards in rewards_list]
+
+        # Flatten the 2D list of q_values to a 1D numpy array
+        q_values = np.concatenate(q_values) if q_values else np.array([])
 
         return q_values
 
