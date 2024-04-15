@@ -87,7 +87,7 @@ class PGAgent(BaseAgent):
             q_values = [self._discounted_cumsum(rewards) for rewards in rewards_list]
 
         # Flatten the 2D list of q_values to a 1D numpy array
-        q_values = np.concatenate(q_values) if q_values else np.array([])
+        q_values = np.concatenate(q_values)
 
         return q_values
 
