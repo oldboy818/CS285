@@ -104,10 +104,13 @@ class PGAgent(BaseAgent):
             ## ensure that the value predictions and q_values have the same dimensionality
             ## to prevent silent broadcasting errors
             assert values_unnormalized.ndim == q_values.ndim
+
             ## TODO: values were trained with standardized q_values, so ensure
                 ## that the predictions have the same mean and standard deviation as
                 ## the current batch of q_values
-            values = TODO
+            # 표준화된 Q 값들과 같은 평균과 표준편차를 가지도록 예측된 값들을 조정합니다.
+            values = (values_unnormalized - np.mean(values_unnormalized)) / (np.std(values_unnormalized) + 1e-8)
+            values = values * (np.std(q_values) + 1e-8) + np.mean(q_values)
 
             if self.gae_lambda is not None:
                 ## append a dummy T+1 value for simpler recursive calculation
@@ -133,7 +136,7 @@ class PGAgent(BaseAgent):
 
             else:
                 ## TODO: compute advantage estimates using q_values, and values as baselines
-                advantages = TODO
+                advantages = q_values - values
 
         # Else, just set the advantage to [Q]
         else:

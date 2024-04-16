@@ -163,7 +163,26 @@ class MLPPolicyPG(MLPPolicy):
             ## Note: You will need to convert the targets into a tensor using
                 ## ptu.from_numpy before using it in the loss
 
-            TODO
+            # convert q_values into a tensor
+            qval_tensor = ptu.from_numpy(q_values)
+            # Normalizing q_values (mean 0, std 1)
+            qval_norm = (qval_tensor - qval_tensor.mean()) / (qval_tensor.std() + 1e-8)
+
+            # predict baseline using baseline_network
+            baseline_pred = self.baseline(observations).squeeze()
+
+            # Calculate Loss of baseline
+            baseline_loss = self.baseline_loss(baseline_pred, qval_norm)
+
+            # Backprop baseline Loss
+            self.baseline_optimizer.zero_grad()
+            baseline_loss.backward()
+            self.baseline_optimizer.step()
+
+            train_log = {
+                'Training Loss': ptu.to_numpy(baseline_loss),
+            }
+            return train_log
 
         train_log = {
             'Training Loss': ptu.to_numpy(loss),
