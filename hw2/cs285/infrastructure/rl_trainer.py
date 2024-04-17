@@ -18,7 +18,7 @@ from tqdm import trange
 
 # how many rollouts to save as videos to tensorboard
 MAX_NVIDEO = 2
-MAX_VIDEO_LEN = 40 # we overwrite this in the code below
+MAX_VIDEO_LEN = 1000 # we overwrite this in the code below
 
 
 class RL_Trainer(object):
@@ -135,9 +135,8 @@ class RL_Trainer(object):
                 self.logmetrics = False
 
             # collect trajectories, to be used for training
-            training_returns = self.collect_training_trajectories(itr,
-                                initial_expertdata, collect_policy,
-                                self.params['batch_size'])
+            training_returns = self.collect_training_trajectories(
+                                itr,initial_expertdata, collect_policy, self.params['batch_size'])
             paths, envsteps_this_batch, train_video_paths = training_returns
             self.total_envsteps += envsteps_this_batch
 

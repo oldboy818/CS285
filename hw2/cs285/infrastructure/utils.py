@@ -125,8 +125,7 @@ def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False, ren
 
 def Path(obs, image_obs, acs, rewards, next_obs, terminals):
     """
-        Take info (separate arrays) from a single rollout
-        and return it in a single dictionary
+        Take info (separate arrays) from a single rollout and return it in a single dictionary
     """
     if image_obs != []:
         image_obs = np.stack(image_obs, axis=0)

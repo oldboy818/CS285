@@ -146,13 +146,15 @@ class MLPPolicyPG(MLPPolicy):
         # HINT2: you will want to use the `log_prob` method on the distribution returned
             # by the `forward` method
 
-        self.optimizer.zero_grad()
         # 현재 정책
         ac_dist = self.forward(observations)
         log_policy = ac_dist.log_prob(actions)
+        
         # update the policy using policy gradient
         loss = -(log_policy * advantages).mean()
         loss.backward()
+
+        self.optimizer.zero_grad()
         self.optimizer.step()
 
         if self.nn_baseline:

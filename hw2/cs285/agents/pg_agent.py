@@ -108,7 +108,7 @@ class PGAgent(BaseAgent):
             ## TODO: values were trained with standardized q_values, so ensure
                 ## that the predictions have the same mean and standard deviation as
                 ## the current batch of q_values
-            # 표준화된 Q 값들과 같은 평균과 표준편차를 가지도록 예측된 값들을 조정합니다.
+            # 표준화된 Q 값들과 같은 평균과 표준편차를 가지도록 예측된 값들을 조정
             values = (values_unnormalized - np.mean(values_unnormalized)) / (np.std(values_unnormalized) + 1e-8)
             values = values * (np.std(q_values) + 1e-8) + np.mean(q_values)
 
@@ -130,7 +130,12 @@ class PGAgent(BaseAgent):
                     ## HINT: use terminals to handle edge cases. terminals[i]
                         ## is 1 if the state is the last in its trajectory, and
                         ## 0 otherwise.
-                    TODO
+                    if terminals[i]:  # State is the last in its trajectory
+                        delta = rews[i] - values[i]
+                        advantages[i] = delta
+                    else:  # State is not the last in its trajectory
+                        delta = rews[i] + self.gamma * values[i+1] - values[i]
+                        advantages[i] = delta + self.gamma * self.gae_lambda * advantages[i+1]
                 # remove dummy advantage
                 advantages = advantages[:-1]
 
