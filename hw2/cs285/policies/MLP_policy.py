@@ -149,12 +149,12 @@ class MLPPolicyPG(MLPPolicy):
         # 현재 정책
         ac_dist = self.forward(observations)
         log_policy = ac_dist.log_prob(actions)
-        
-        # update the policy using policy gradient
-        loss = -(log_policy * advantages).mean()
-        loss.backward()
 
+        # calculate loss
+        loss = -(log_policy * advantages).mean()
+        
         self.optimizer.zero_grad()
+        loss.backward()
         self.optimizer.step()
 
         if self.nn_baseline:
@@ -204,3 +204,5 @@ class MLPPolicyPG(MLPPolicy):
         observations = ptu.from_numpy(observations)
         pred = self.baseline(observations)
         return ptu.to_numpy(pred.squeeze())
+
+

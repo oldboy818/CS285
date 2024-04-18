@@ -87,6 +87,16 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # query the policy with observation(s) to get selected action(s)
     def get_action(self, obs: np.ndarray) -> np.ndarray:
         # TODO: get this from hw1 or hw2
+        if len(obs.shape) > 1:
+            observation = obs
+        else:
+            observation = obs[None]  # 관측값이 하나인 경우 배치 차원 추가
+        # NumPy 배열을 PyTorch 텐서로 변환
+        obs_tensor = ptu.from_numpy(observation)
+        # 신경망 통과시켜 action_distribution 반환. 즉, policy 반환
+        action_tensor = self.forward(obs_tensor).sample()
+        # PyTorch 텐서를 NumPy 배열로 변환
+        action = ptu.to_numpy(action_tensor)
         return action
 
     # update/train this policy
@@ -100,6 +110,20 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor):
         # TODO: get this from hw1 or hw2
+        if self.discrete:
+            logits = self.logits_na(observation)
+            action_distribution = distributions.Categorical(logits=logits)
+            return action_distribution
+        else:
+            batch_mean = self.mean_net(observation)
+            scale_tril = torch.diag(torch.exp(self.logstd))
+            batch_dim = batch_mean.shape[0]
+            batch_scale_tril = scale_tril.repeat(batch_dim, 1, 1)
+            action_distribution = distributions.MultivariateNormal(
+                batch_mean,
+                scale_tril=batch_scale_tril,
+            )
+            return action_distribution
         return action_distribution
 
 

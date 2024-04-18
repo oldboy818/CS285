@@ -22,6 +22,8 @@ from cs285.infrastructure.dqn_utils import (
         register_custom_envs,
 )
 
+from tqdm import trange
+
 # how many rollouts to save as videos to tensorboard
 MAX_NVIDEO = 2
 MAX_VIDEO_LEN = 40 # we overwrite this in the code below
@@ -302,11 +304,35 @@ class RL_Trainer(object):
             train_video_paths: paths which also contain videos for visualization purposes
         """
         # TODO: get this from hw1 or hw2
+        if (itr == 0) and (initial_expertdata is not None):  # If we're in the first iteration
+            loaded_paths = np.load(initial_expertdata, allow_pickle=True)
+            return loaded_paths, 0, None
+        
+        print("\nCollecting data to be used for training...")
+        max_path_length = self.params['ep_len']
+        paths, envsteps_this_batch = utils.sample_trajectories(
+                        self.env, collect_policy, num_transitions_to_sample, max_path_length, False)
+
+        train_video_paths = None
+        if self.logvideo:
+            print('\nCollecting train rollouts to be used for saving videos...')
+            train_video_paths = utils.sample_n_trajectories(self.env, collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
 
         return paths, envsteps_this_batch, train_video_paths
 
     def train_agent(self):
         # TODO: get this from hw1 or hw2
+        print('\nTraining agent using sampled data from replay buffer...')
+        all_logs = []
+        for train_step in trange(self.params['num_agent_train_steps_per_iter']):
+            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.agent.sample(
+                self.params['train_batch_size'])
+            
+            train_log = self.agent.train(
+                ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch
+            )
+            all_logs.append(train_log)
+        return all_logs
 
     ####################################
     ####################################
