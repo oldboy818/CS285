@@ -324,7 +324,7 @@ class RL_Trainer(object):
         # TODO: get this from hw1 or hw2
         print('\nTraining agent using sampled data from replay buffer...')
         all_logs = []
-        for train_step in trange(self.params['num_agent_train_steps_per_iter']):
+        for train_step in range(self.params['num_agent_train_steps_per_iter']):
             ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.agent.sample(
                 self.params['train_batch_size'])
             

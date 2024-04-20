@@ -109,6 +109,7 @@ class PGAgent(BaseAgent):
                 ## that the predictions have the same mean and standard deviation as
                 ## the current batch of q_values
             # 표준화된 Q 값들과 같은 평균과 표준편차를 가지도록 예측된 값들을 조정
+            # 이렇게 조정하지 않으면? 왜 이걸 하는거지? Advantage를 계산할 때, Q - V이니까?
             values = (values_unnormalized - np.mean(values_unnormalized)) / (np.std(values_unnormalized) + 1e-8)
             values = values * (np.std(q_values) + 1e-8) + np.mean(q_values)
 
@@ -130,12 +131,13 @@ class PGAgent(BaseAgent):
                     ## HINT: use terminals to handle edge cases. terminals[i]
                         ## is 1 if the state is the last in its trajectory, and
                         ## 0 otherwise.
-                    if terminals[i]:  # State is the last in its trajectory
+                    if terminals[i]:
                         delta = rews[i] - values[i]
                         advantages[i] = delta
-                    else:  # State is not the last in its trajectory
+                    else:
                         delta = rews[i] + self.gamma * values[i+1] - values[i]
                         advantages[i] = delta + self.gamma * self.gae_lambda * advantages[i+1]
+                        
                 # remove dummy advantage
                 advantages = advantages[:-1]
 
