@@ -7,7 +7,7 @@ Assignments for [Berkeley CS 285: Deep Reinforcement Learning, Decision Making, 
 * Q2: DAgger [__(Done)__](https://github.com/oldboy818/CS285/tree/main/hw1/data)
 
 ### Assignment2 : Policy Gradients
-* Q1: Reward-to-go [__Report__](https://velog.io/@oldboy818/CS285HW2Policy-Gradients)
+* Q1: Reward-to-go [__(Report)__](https://velog.io/@oldboy818/CS285HW2Policy-Gradients)
 * Q2: Neural Network Baselines
 * Q3: Generalized Advantage estimation
 * Q4: Advantage Normalization
