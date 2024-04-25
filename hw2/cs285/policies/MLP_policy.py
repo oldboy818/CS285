@@ -151,7 +151,7 @@ class MLPPolicyPG(MLPPolicy):
         log_policy = ac_dist.log_prob(actions)
 
         # calculate loss
-        loss = -(log_policy * advantages).mean()
+        loss = -(log_policy * advantages).sum()
         
         self.optimizer.zero_grad()
         loss.backward()
@@ -164,31 +164,28 @@ class MLPPolicyPG(MLPPolicy):
 
             ## Note: You will need to convert the targets into a tensor using
                 ## ptu.from_numpy before using it in the loss
-
-            # convert q_values into a tensor
-            qval_tensor = ptu.from_numpy(q_values)
+            
             # Normalizing q_values (mean 0, std 1)
-            qval_norm = (qval_tensor - qval_tensor.mean()) / (qval_tensor.std() + 1e-8)
+            qval_norm = (q_values - q_values.mean()) / (q_values.std() + 1e-8)
+            # convert q_values into a tensor
+            qval_tensor = ptu.from_numpy(qval_norm)
 
             # predict baseline using baseline_network
             baseline_pred = self.baseline(observations).squeeze()
 
             # Calculate Loss of baseline
-            baseline_loss = self.baseline_loss(baseline_pred, qval_norm)
+            baseline_loss = self.baseline_loss(baseline_pred, qval_tensor)
 
             # Backprop baseline Loss
             self.baseline_optimizer.zero_grad()
             baseline_loss.backward()
             self.baseline_optimizer.step()
 
-            train_log = {
-                'Training Loss': ptu.to_numpy(baseline_loss),
-            }
-            return train_log
-
         train_log = {
             'Training Loss': ptu.to_numpy(loss),
         }
+        if self.nn_baseline:
+            train_log["Baseline Loss"] = baseline_loss
         return train_log
 
     def run_baseline_prediction(self, observations):

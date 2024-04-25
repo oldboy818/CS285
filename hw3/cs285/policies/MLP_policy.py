@@ -86,7 +86,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     # query the policy with observation(s) to get selected action(s)
     def get_action(self, obs: np.ndarray) -> np.ndarray:
-        # TODO: get this from hw1 or hw2
+        # TODO: get this from HW1
         if len(obs.shape) > 1:
             observation = obs
         else:
@@ -97,8 +97,9 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         action_tensor = self.forward(obs_tensor).sample()
         # PyTorch 텐서를 NumPy 배열로 변환
         action = ptu.to_numpy(action_tensor)
-        return action
 
+        return action
+    
     # update/train this policy
     def update(self, observations, actions, **kwargs):
         raise NotImplementedError
@@ -109,7 +110,6 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor):
-        # TODO: get this from hw1 or hw2
         if self.discrete:
             logits = self.logits_na(observation)
             action_distribution = distributions.Categorical(logits=logits)
@@ -124,7 +124,6 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                 scale_tril=batch_scale_tril,
             )
             return action_distribution
-        return action_distribution
 
 
 #####################################################

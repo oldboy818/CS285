@@ -181,7 +181,8 @@ class RL_Trainer(object):
         # TODO: GETTHIS from HW1
         print('\nTraining agent using sampled data from replay buffer...')
         all_logs = []
-        for train_step in range(self.params['num_agent_train_steps_per_iter']):
+        
+        for train_step in trange(self.params['num_agent_train_steps_per_iter']):
             ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.agent.sample(
                 self.params['train_batch_size'])
             
@@ -258,14 +259,3 @@ class RL_Trainer(object):
             print('Done logging...\n\n')
 
             self.logger.flush()
-
-'''
-for b in 5000 10000 15000; do
-    for r in 0.005 0.01 0.02; do
-        python cs285/scripts/run_hw2.py --env_name InvertedPendulum-v4 \
-            --ep_len 1000 --discount 0.9 -n 100 -l 2 -s 64 -b $b -lr $r -rtg \
-            --exp_name q2_b${b}_r${r}
-    done
-done
-
-'''

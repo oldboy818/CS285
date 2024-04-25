@@ -137,7 +137,7 @@ class PGAgent(BaseAgent):
                     else:
                         delta = rews[i] + self.gamma * values[i+1] - values[i]
                         advantages[i] = delta + self.gamma * self.gae_lambda * advantages[i+1]
-                        
+
                 # remove dummy advantage
                 advantages = advantages[:-1]
 

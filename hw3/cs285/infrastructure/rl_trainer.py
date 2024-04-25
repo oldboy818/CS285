@@ -3,7 +3,6 @@ import pickle
 import os
 import sys
 import time
-from cs285.infrastructure.atari_wrappers import ReturnWrapper
 
 import gym
 from gym import wrappers
@@ -11,16 +10,9 @@ import numpy as np
 import torch
 from cs285.infrastructure import pytorch_util as ptu
 
-from cs285.infrastructure.utils import Path
 from cs285.infrastructure import utils
 from cs285.infrastructure.logger import Logger
-
-from cs285.agents.dqn_agent import DQNAgent
-from cs285.agents.sac_agent import SACAgent
-from cs285.infrastructure.dqn_utils import (
-        get_wrapper_by_name,
-        register_custom_envs,
-)
+from cs285.infrastructure.action_noise_wrapper import ActionNoiseWrapper
 
 from tqdm import trange
 
@@ -292,26 +284,16 @@ class RL_Trainer(object):
     ####################################
     ####################################
 
-    def collect_training_trajectories(self, itr, initial_expertdata, collect_policy, num_transitions_to_sample, save_expert_data_to_disk=False):
-        """
-        :param itr:
-        :param load_initial_expertdata:  path to expert data pkl file
-        :param collect_policy:  the current policy using which we collect data
-        :param num_transitions_to_sample:  the number of transitions we collect
-        :return:
-            paths: a list trajectories
-            envsteps_this_batch: the sum over the numbers of environment steps in paths
-            train_video_paths: paths which also contain videos for visualization purposes
-        """
-        # TODO: get this from hw1 or hw2
-        if (itr == 0) and (initial_expertdata is not None):  # If we're in the first iteration
-            loaded_paths = np.load(initial_expertdata, allow_pickle=True)
+    def collect_training_trajectories(self, itr, load_initial_expertdata, collect_policy, batch_size):
+        # TODO: GETTHIS from HW1
+        if (itr == 0) and (load_initial_expertdata is not None):  # If we're in the first iteration
+            loaded_paths = np.load(load_initial_expertdata, allow_pickle=True)
             return loaded_paths, 0, None
         
         print("\nCollecting data to be used for training...")
         max_path_length = self.params['ep_len']
         paths, envsteps_this_batch = utils.sample_trajectories(
-                        self.env, collect_policy, num_transitions_to_sample, max_path_length, False)
+                        self.env, collect_policy, batch_size, max_path_length, False)
 
         train_video_paths = None
         if self.logvideo:
@@ -320,8 +302,9 @@ class RL_Trainer(object):
 
         return paths, envsteps_this_batch, train_video_paths
 
+
     def train_agent(self):
-        # TODO: get this from hw1 or hw2
+        # TODO: GETTHIS from HW1
         print('\nTraining agent using sampled data from replay buffer...')
         all_logs = []
         for train_step in range(self.params['num_agent_train_steps_per_iter']):

@@ -55,7 +55,7 @@ def mean_squared_error(a, b):
 ############################################
 
 def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('rgb_array')):
-    # TODO: get this from hw1 or hw2
+    # TODO: get this from hw1
     # initialize env for the beginning of a new rollout
     ob = env.reset()
     # init vars
@@ -94,12 +94,9 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
 
     return Path(obs, image_obs, acs, rewards, next_obs, terminals)
 
+
 def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, render=False, render_mode=('rgb_array')):
-    """
-        Collect rollouts using policy
-        until we have collected min_timesteps_per_batch steps
-    """
-    # TODO: get this from hw1 or hw2
+    # TODO: get this from hw1
     timesteps_this_batch = 0
     paths = []
     
@@ -114,16 +111,13 @@ def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, r
     return paths, timesteps_this_batch
 
 def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False, render_mode=('rgb_array')):
-    """
-        Collect ntraj rollouts using policy
-    """
-    # TODO: get this from hw1 or hw2
+    # TODO: get this from hw1
     paths = []
 
     for _ in range(ntraj):
         path = sample_trajectory(env, policy, max_path_length, render)
         paths.append(path)
-
+    
     return paths
 
 ############################################
@@ -301,4 +295,3 @@ def sample_random_trajectories(env, min_timesteps_per_batch, max_path_length, re
         timesteps_this_batch += get_pathlength(path)
         print('At timestep:    ', timesteps_this_batch, '/', min_timesteps_per_batch, end='\r')
     return paths, timesteps_this_batch
-
