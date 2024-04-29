@@ -202,4 +202,3 @@ class MLPPolicyPG(MLPPolicy):
         pred = self.baseline(observations)
         return ptu.to_numpy(pred.squeeze())
 
-

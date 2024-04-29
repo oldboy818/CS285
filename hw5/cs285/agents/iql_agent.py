@@ -1,166 +1,147 @@
-from collections import OrderedDict
-
-from cs285.critics.dqn_critic import DQNCritic
-from cs285.critics.cql_critic import CQLCritic
-from cs285.critics.iql_critic import IQLCritic
-from cs285.infrastructure.replay_buffer import ReplayBuffer
-from cs285.infrastructure.utils import *
-from cs285.infrastructure import pytorch_util as ptu
-from cs285.policies.argmax_policy import ArgMaxPolicy
-from cs285.infrastructure.dqn_utils import MemoryOptimizedReplayBuffer
-from cs285.exploration.rnd_model import RNDModel
-from .dqn_agent import DQNAgent
-from cs285.policies.MLP_policy import MLPPolicyAWAC
-import numpy as np
+from typing import Optional
 import torch
+from torch import nn
+from cs285.agents.awac_agent import AWACAgent
+
+from typing import Callable, Optional, Sequence, Tuple, List
 
 
-class IQLAgent(DQNAgent):
-    def __init__(self, env, agent_params, normalize_rnd=True, rnd_gamma=0.99):
-        super(IQLAgent, self).__init__(env, agent_params)
-        
-        self.replay_buffer = MemoryOptimizedReplayBuffer(100000, 1, float_obs=True)
-        self.num_exploration_steps = agent_params['num_exploration_steps']
-        self.offline_exploitation = agent_params['offline_exploitation']
-
-        self.exploitation_critic = IQLCritic(agent_params, self.optimizer_spec)
-        self.exploration_critic = DQNCritic(agent_params, self.optimizer_spec)
-        
-        self.exploration_model = RNDModel(agent_params, self.optimizer_spec)
-        self.explore_weight_schedule = agent_params['explore_weight_schedule']
-        self.exploit_weight_schedule = agent_params['exploit_weight_schedule']
-        
-        self.actor = ArgMaxPolicy(self.exploitation_critic)
-        self.eval_policy = self.awac_actor = MLPPolicyAWAC(
-            self.agent_params['ac_dim'],
-            self.agent_params['ob_dim'],
-            self.agent_params['n_layers'],
-            self.agent_params['size'],
-            self.agent_params['discrete'],
-            self.agent_params['learning_rate'],
-            self.agent_params['awac_lambda'],
+class IQLAgent(AWACAgent):
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        num_actions: int,
+        make_value_critic: Callable[[Tuple[int, ...], int], nn.Module],
+        make_value_critic_optimizer: Callable[
+            [torch.nn.ParameterList], torch.optim.Optimizer
+        ],
+        expectile: float,
+        **kwargs
+    ):
+        super().__init__(
+            observation_shape=observation_shape, num_actions=num_actions, **kwargs
         )
 
-        self.exploit_rew_shift = agent_params['exploit_rew_shift']
-        self.exploit_rew_scale = agent_params['exploit_rew_scale']
-        self.eps = agent_params['eps']
+        self.value_critic = make_value_critic(observation_shape)
+        self.target_value_critic = make_value_critic(observation_shape)
+        self.target_value_critic.load_state_dict(self.value_critic.state_dict())
 
-        self.running_rnd_rew_std = 1
-        self.normalize_rnd = normalize_rnd
-        self.rnd_gamma = rnd_gamma
+        self.value_critic_optimizer = make_value_critic_optimizer(
+            self.value_critic.parameters()
+        )
+        self.expectile = expectile
 
-    def get_qvals(self, critic, obs, action=None, use_v=False):
-        if use_v:
-            q_value = critic.v_net(obs)
-        else:
-            qa_values = critic.q_net_target(obs)
-            q_value = torch.gather(qa_values, 1, action.type(torch.int64).unsqueeze(1))
-        return q_value
+    def compute_advantage(
+        self,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        action_dist: Optional[torch.distributions.Categorical] = None,
+    ):
+        # TODO(student): Compute advantage with IQL
+        return ...
 
-    def estimate_advantage(self, ob_no, ac_na, re_n, next_ob_no, terminal_n, n_actions=10):
-        ob_no = ptu.from_numpy(ob_no)
-        ac_na = ptu.from_numpy(ac_na)
-        re_n = ptu.from_numpy(re_n)
-        next_ob_no = ptu.from_numpy(next_ob_no)
-        terminal_n = ptu.from_numpy(terminal_n)
-
-        v_pi = self.get_qvals(self.exploitation_critic, ob_no, use_v=True)
-        return self.get_qvals(self.exploitation_critic, ob_no, ac_na) - v_pi
-
-    def train(self, ob_no, ac_na, re_n, next_ob_no, terminal_n):
-        log = {}
-
-        if self.t > self.num_exploration_steps:
-            # TODO: After exploration is over, set the actor to optimize the extrinsic critic
-            #HINT: Look at method ArgMaxPolicy.set_critic
-
-        if (self.t > self.learning_starts
-                and self.t % self.learning_freq == 0
-                and self.replay_buffer.can_sample(self.batch_size)
-        ):
-
-            # TODO: Get Reward Weights
-            # Get the current explore reward weight and exploit reward weight
-            explore_weight = None
-            exploit_weight = None 
-
-            # TODO: Run Exploration Model #
-            # Evaluate the exploration model on s to get the exploration bonus
-            # HINT: Normalize the exploration bonus, as RND values vary highly in magnitude
-            expl_bonus = None
-
-            # TODO: Reward Calculations #
-            # Calculate mixed rewards, which will be passed into the exploration critic
-            # HINT: See doc for definition of mixed_reward
-            mixed_reward = None
-
-            # TODO: Calculate the environment reward
-            # HINT: For part 1, env_reward is just 're_n'
-            #       After this, env_reward is 're_n' shifted by self.exploit_rew_shift,
-            #       and scaled by self.exploit_rew_scale
-            env_reward = None
-
-            # TODO: Update Critics And Exploration Model #
-            # 1): Update the exploration model (based off s')
-            # 2): Update the exploration critic (based off mixed_reward)
-            # 3): a) Update the exploitation critic's Value function
-            # 3): b) Update the exploitation critic's Q function (based off env_reward)
-            expl_model_loss = None
-            exploration_critic_loss = None 
-            exploitation_critic_loss = None
-            exploitation_critic_loss.update(TODO)
-
-
-
-            # TODO: update actor as in AWAC
-            # 1): Estimate the advantage
-            # 2): Calculate the awac actor loss
-            advantage = None
-            actor_loss = None
-
-            # TODO: Update Target Networks #
-            if self.num_param_updates % self.target_update_freq == 0:
-                #  Update the exploitation and exploration target networks
-                pass
-
-            # Logging #
-            log['Exploration Critic Loss'] = exploration_critic_loss['Training Loss']
-            log['Exploitation Critic V Loss'] = exploitation_critic_loss['Training Q Loss']
-            log['Exploitation Critic Q Loss'] = exploitation_critic_loss['Training V Loss']
-            log['Exploration Model Loss'] = expl_model_loss
-
-            # <DONE>: Uncomment these lines after completing awac
-            # log['Actor Loss'] = actor_loss
-
-            self.num_param_updates += 1
-
-        self.t += 1
-        return log
-
-
-    def step_env(self):
+    def update_q(
+        self,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        next_observations: torch.Tensor,
+        dones: torch.Tensor,
+    ) -> dict:
         """
-            Step the env and store the transition
-            At the end of this block of code, the simulator should have been
-            advanced one step, and the replay buffer should contain one more transition.
-            Note that self.last_obs must always point to the new latest observation.
+        Update Q(s, a)
         """
-        if (not self.offline_exploitation) or (self.t <= self.num_exploration_steps):
-            self.replay_buffer_idx = self.replay_buffer.store_frame(self.last_obs)
+        # TODO(student): Update Q(s, a) to match targets (based on V)
+        loss = ...
 
-        perform_random_action = np.random.random() < self.eps or self.t < self.learning_starts
+        self.critic_optimizer.zero_grad()
+        loss.backward()
+        grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(
+            self.critic.parameters(), self.clip_grad_norm or float("inf")
+        )
+        self.critic_optimizer.step()
 
-        if perform_random_action:
-            action = self.env.action_space.sample()
-        else:
-            processed = self.replay_buffer.encode_recent_observation()
-            action = self.actor.get_action(processed)
+        metrics = {
+            "q_loss": self.critic_loss(q_values, target_values).item(),
+            "q_values": q_values.mean().item(),
+            "target_values": target_values.mean().item(),
+            "q_grad_norm": grad_norm.item(),
+        }
 
-        next_obs, reward, done, info = self.env.step(action)
-        self.last_obs = next_obs.copy()
+        return metrics
 
-        if (not self.offline_exploitation) or (self.t <= self.num_exploration_steps):
-            self.replay_buffer.store_effect(self.replay_buffer_idx, action, reward, done)
+    @staticmethod
+    def iql_expectile_loss(
+        expectile: float, vs: torch.Tensor, target_qs: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Compute the expectile loss for IQL
+        """
+        # TODO(student): Compute the expectile loss
+        return ...
 
-        if done:
-            self.last_obs = self.env.reset()
+    def update_v(
+        self,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+    ):
+        """
+        Update the value network V(s) using targets Q(s, a)
+        """
+        # TODO(student): Compute target values for V(s)
+
+        # TODO(student): Update V(s) using the loss from the IQL paper
+        loss = ...
+
+        self.value_critic_optimizer.zero_grad()
+        loss.backward()
+        grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(
+            self.value_critic.parameters(), self.clip_grad_norm or float("inf")
+        )
+        self.value_critic_optimizer.step()
+
+        return {
+            "v_loss": loss.item(),
+            "vs_adv": (vs - target_values).mean().item(),
+            "vs": vs.mean().item(),
+            "target_values": target_values.mean().item(),
+            "v_grad_norm": grad_norm.item(),
+        }
+
+    def update_critic(
+        self,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        next_observations: torch.Tensor,
+        dones: torch.Tensor,
+    ) -> dict:
+        """
+        Update both Q(s, a) and V(s)
+        """
+
+        metrics_q = self.update_q(observations, actions, rewards, next_observations, dones)
+        metrics_v = self.update_v(observations, actions)
+
+        return {**metrics_q, **metrics_v}
+
+    def update(
+        self,
+        observations: torch.Tensor,
+        actions: torch.Tensor,
+        rewards: torch.Tensor,
+        next_observations: torch.Tensor,
+        dones: torch.Tensor,
+        step: int,
+    ):
+        metrics = self.update_critic(observations, actions, rewards, next_observations, dones)
+        metrics["actor_loss"] = self.update_actor(observations, actions)
+
+        if step % self.target_update_period == 0:
+            self.update_target_critic()
+            self.update_target_value_critic()
+        
+        return metrics
+
+    def update_target_value_critic(self):
+        self.target_value_critic.load_state_dict(self.value_critic.state_dict())

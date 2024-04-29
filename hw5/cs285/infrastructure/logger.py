@@ -50,7 +50,7 @@ class Logger:
 
     def log_figures(self, figure, name, step, phase):
         """figure: matplotlib.pyplot figure handle"""
-        assert figure.shape[0] > 0, "Figure logging requires input shape [batch x figures]!"
+        assert len(figure) > 0, "Figure logging requires input shape [batch x figures]!"
         self._summ_writer.add_figure('{}_{}'.format(name, phase), figure, step)
 
     def log_figure(self, figure, name, step, phase):

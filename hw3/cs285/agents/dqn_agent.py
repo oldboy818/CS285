@@ -1,230 +1,118 @@
+from typing import Sequence, Callable, Tuple, Optional
+
+import torch
+from torch import nn
+
 import numpy as np
 
-from cs285.infrastructure.dqn_utils import MemoryOptimizedReplayBuffer, PiecewiseSchedule
-from cs285.policies.argmax_policy import ArgMaxPolicy
-from cs285.critics.dqn_critic import DQNCritic
+import cs285.infrastructure.pytorch_util as ptu
 
 
-class DQNAgent(object):
-    def __init__(self, env, agent_params):
+class DQNAgent(nn.Module):
+    def __init__(
+        self,
+        observation_shape: Sequence[int],
+        num_actions: int,
+        make_critic: Callable[[Tuple[int, ...], int], nn.Module],
+        make_optimizer: Callable[[torch.nn.ParameterList], torch.optim.Optimizer],
+        make_lr_schedule: Callable[
+            [torch.optim.Optimizer], torch.optim.lr_scheduler._LRScheduler
+        ],
+        discount: float,
+        target_update_period: int,
+        use_double_q: bool = False,
+        clip_grad_norm: Optional[float] = None,
+    ):
+        super().__init__()
 
-        self.env = env
-        self.agent_params = agent_params
-        self.batch_size = agent_params['batch_size']
-        # import ipdb; ipdb.set_trace()
-        self.last_obs = self.env.reset()
+        self.critic = make_critic(observation_shape, num_actions)
+        self.target_critic = make_critic(observation_shape, num_actions)
+        self.critic_optimizer = make_optimizer(self.critic.parameters())
+        self.lr_scheduler = make_lr_schedule(self.critic_optimizer)
 
-        self.num_actions = agent_params['ac_dim']
-        self.learning_starts = agent_params['learning_starts']
-        self.learning_freq = agent_params['learning_freq']
-        self.target_update_freq = agent_params['target_update_freq']
+        self.observation_shape = observation_shape
+        self.num_actions = num_actions
+        self.discount = discount
+        self.target_update_period = target_update_period
+        self.clip_grad_norm = clip_grad_norm
+        self.use_double_q = use_double_q
 
-        self.replay_buffer_idx = None
-        self.exploration = agent_params['exploration_schedule']
-        self.optimizer_spec = agent_params['optimizer_spec']
+        self.critic_loss = nn.MSELoss()
 
-        self.critic = DQNCritic(agent_params, self.optimizer_spec)
-        self.actor = ArgMaxPolicy(self.critic)
+        self.update_target_critic()
 
-        lander = agent_params['env_name'].startswith('LunarLander')
-        self.replay_buffer = MemoryOptimizedReplayBuffer(
-            agent_params['replay_buffer_size'], agent_params['frame_history_len'], lander=lander)
-        self.t = 0
-        self.num_param_updates = 0
-
-    def add_to_replay_buffer(self, paths):
-        pass
-
-    def step_env(self):
+    def get_action(self, observation: np.ndarray, epsilon: float = 0.02) -> int:
         """
-            Step the env and store the transition
-            At the end of this block of code, the simulator should have been
-            advanced one step, and the replay buffer should contain one more transition.
-            Note that self.last_obs must always point to the new latest observation.
-        """        
+        Used for evaluation.
+        """
+        observation = ptu.from_numpy(np.asarray(observation))[None]
 
-        # TODO store the latest observation ("frame") into the replay buffer
-        # HINT: the replay buffer used here is `MemoryOptimizedReplayBuffer`
-            # in dqn_utils.py
-        self.replay_buffer_idx = self.replay_buffer.store_frame(self.last_obs)
+        # TODO(student): get the action from the critic using an epsilon-greedy strategy
+        action = ...
 
-        eps = self.exploration.value(self.t)
+        return ptu.to_numpy(action).squeeze(0).item()
 
-        # TODO use epsilon greedy exploration when selecting action
-        perform_random_action = TODO
-        if perform_random_action:
-            # HINT: take random action (can sample from self.env.action_space)
-                # with probability eps (see np.random.random())
-                # OR if your current step number (see self.t) is less that self.learning_starts
-            action = TODO
-        else:
-            # HINT: Your actor will take in multiple previous observations ("frames") in order
-                # to deal with the partial observability of the environment. Get the most recent 
-                # `frame_history_len` observations using functionality from the replay buffer,
-                # and then use those observations as input to your actor. 
-            action = TODO
-        
-        # TODO take a step in the environment using the action from the policy
-        # HINT1: remember that self.last_obs must always point to the newest/latest observation
-        # HINT2: remember the following useful function that you've seen before:
-            #obs, reward, done, info = env.step(action)
-        TODO
+    def update_critic(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        reward: torch.Tensor,
+        next_obs: torch.Tensor,
+        done: torch.Tensor,
+    ) -> dict:
+        """Update the DQN critic, and return stats for logging."""
+        (batch_size,) = reward.shape
 
-        # TODO store the result of taking this action into the replay buffer
-        # HINT1: see your replay buffer's `store_effect` function
-        # HINT2: one of the arguments you'll need to pass in is self.replay_buffer_idx from above
-        TODO
+        # Compute target values
+        with torch.no_grad():
+            # TODO(student): compute target values
+            next_qa_values = ...
 
-        # TODO if taking this step resulted in done, reset the env (and the latest observation)
-        TODO
+            if self.use_double_q:
+                raise NotImplementedError
+            else:
+                next_action = ...
+            
+            next_q_values = ...
+            target_values = ...
 
-    def sample(self, batch_size):
-        if self.replay_buffer.can_sample(self.batch_size):
-            return self.replay_buffer.sample(batch_size)
-        else:
-            return [],[],[],[],[]
-
-    def train(self, ob_no, ac_na, re_n, next_ob_no, terminal_n):
-        log = {}
-        if (self.t > self.learning_starts
-                and self.t % self.learning_freq == 0
-                and self.replay_buffer.can_sample(self.batch_size)
-        ):
-
-            # TODO fill in the call to the update function using the appropriate tensors
-            log = self.critic.update(
-                TODO
-            )
-
-            # TODO update the target network periodically 
-            # HINT: your critic already has this functionality implemented
-            if self.num_param_updates % self.target_update_freq == 0:
-                TODO
-
-            self.num_param_updates += 1
-
-        self.t += 1
-        return log
-    
-import numpy as np
-
-from cs285.infrastructure.dqn_utils import MemoryOptimizedReplayBuffer, PiecewiseSchedule
-from cs285.policies.argmax_policy import ArgMaxPolicy
-from cs285.critics.dqn_critic import DQNCritic
+        # TODO(student): train the critic with the target values
+        qa_values = ...
+        q_values = ... # Compute from the data actions; see torch.gather
+        loss = ...
 
 
-class DQNAgent(object):
-    def __init__(self, env, agent_params):
-
-        self.env = env
-        self.agent_params = agent_params
-        self.batch_size = agent_params['batch_size']
-        # import ipdb; ipdb.set_trace()
-        self.last_obs = self.env.reset()
-
-        self.num_actions = agent_params['ac_dim']
-        self.learning_starts = agent_params['learning_starts']
-        self.learning_freq = agent_params['learning_freq']
-        self.target_update_freq = agent_params['target_update_freq']
-
-        self.replay_buffer_idx = None
-        self.exploration: PiecewiseSchedule = \
-            agent_params['exploration_schedule']
-        self.optimizer_spec = agent_params['optimizer_spec']
-
-        self.critic = DQNCritic(agent_params, self.optimizer_spec)
-        self.actor = ArgMaxPolicy(self.critic)
-
-        lander = agent_params['env_name'].startswith('LunarLander')
-        self.replay_buffer = MemoryOptimizedReplayBuffer(
-            agent_params['replay_buffer_size'],
-            agent_params['frame_history_len'],
-            lander=lander,
+        self.critic_optimizer.zero_grad()
+        loss.backward()
+        grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(
+            self.critic.parameters(), self.clip_grad_norm or float("inf")
         )
-        self.t = 0
-        self.num_param_updates = 0
+        self.critic_optimizer.step()
 
-    def add_to_replay_buffer(self, paths):
-        pass
+        self.lr_scheduler.step()
 
-    def step_env(self):
+        return {
+            "critic_loss": loss.item(),
+            "q_values": q_values.mean().item(),
+            "target_values": target_values.mean().item(),
+            "grad_norm": grad_norm.item(),
+        }
+
+    def update_target_critic(self):
+        self.target_critic.load_state_dict(self.critic.state_dict())
+
+    def update(
+        self,
+        obs: torch.Tensor,
+        action: torch.Tensor,
+        reward: torch.Tensor,
+        next_obs: torch.Tensor,
+        done: torch.Tensor,
+        step: int,
+    ) -> dict:
         """
-        Step the env and store the transition
-        At the end of this block of code, the simulator should have been
-        advanced one step, and the replay buffer should contain one more
-        transition. Note that self.last_obs must always point to the new latest
-        observation.
+        Update the DQN agent, including both the critic and target.
         """
+        # TODO(student): update the critic, and the target if needed
 
-        # store the latest observation ("frame") into the replay buffer
-        self.replay_buffer_idx = self.replay_buffer.store_frame(self.last_obs)
-
-        eps = self.exploration.value(self.t)
-
-        # use epsilon greedy exploration when selecting action
-        perform_random_action: bool = \
-            np.random.random() < eps or self.t < self.learning_starts
-        if perform_random_action:
-            # take random action with probability eps (see np.random.random())
-            # OR if your current step number (see self.t) is less than
-            # self.learning_starts
-            action = self.env.action_space.sample()
-        else:
-            # HINT: Your actor will take in multiple previous observations
-            # ("frames") in order to deal with the partial observability of the
-            # environment. Get the most recent `frame_history_len` observations
-            # using functionality from the replay buffer, and then use those
-            # observations as input to your actor.
-
-            frames = self.replay_buffer.encode_recent_observation()
-            action = self.actor.get_action(frames)
-
-        # take a step in the environment using the action from the policy
-        # HINT1: remember that self.last_obs must always point to the newest/latest observation
-        # HINT2: remember the following useful function that you've seen before:
-        self.last_obs, reward, done, info = self.env.step(action)
-
-        # store the result of taking this action into the replay buffer
-        # HINT1: see your replay buffer's `store_effect` function
-        # HINT2: one of the arguments you'll need to pass in is self.replay_buffer_idx from above
-        self.replay_buffer.store_effect(
-            self.replay_buffer_idx,
-            action,
-            reward,
-            done
-        )
-
-        # if taking this step resulted in done, reset the env (and the
-        # latest observation)
-        if done:
-            self.last_obs = self.env.reset()
-
-    def sample(self, batch_size):
-        if self.replay_buffer.can_sample(self.batch_size):
-            return self.replay_buffer.sample(batch_size)
-        else:
-            return [], [], [], [], []
-
-    def train(self, ob_no, ac_na, re_n, next_ob_no, terminal_n):
-        log = {}
-        if (self.t > self.learning_starts
-                and self.t % self.learning_freq == 0
-                and self.replay_buffer.can_sample(self.batch_size)
-        ):
-
-            log = self.critic.update(
-                ob_no,
-                ac_na,
-                next_ob_no,
-                re_n,
-                terminal_n,
-            )
-
-            # update the target network periodically
-            if self.num_param_updates % self.target_update_freq == 0:
-                self.critic.update_target_network()
-
-            self.num_param_updates += 1
-
-        self.t += 1
-        return log
+        return critic_stats
