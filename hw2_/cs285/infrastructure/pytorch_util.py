@@ -16,7 +16,6 @@ _str_to_activation = {
     'identity': nn.Identity(),
 }
 
-device = None
 
 def build_mlp(
         input_size: int,
@@ -56,10 +55,10 @@ def build_mlp(
         in_size = size
     layers.append(nn.Linear(in_size, output_size))
     layers.append(output_activation)
+    return nn.Sequential(*layers)
 
-    mlp = nn.Sequential(*layers)
-    mlp.to(device)
-    return mlp
+
+device = None
 
 
 def init_gpu(use_gpu=True, gpu_id=0):
@@ -69,7 +68,7 @@ def init_gpu(use_gpu=True, gpu_id=0):
         print("Using GPU id {}".format(gpu_id))
     else:
         device = torch.device("cpu")
-        print("Using CPU.")
+        print("GPU not detected. Defaulting to CPU.")
 
 
 def set_device(gpu_id):
