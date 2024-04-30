@@ -90,22 +90,20 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
         epsilon = exploration_schedule.value(step)
         
-        # TODO(student): Compute action
-        action = ...
+        # Compute action
+        action = agent.get_action(observation, epsilon)
 
-        # TODO(student): Step the environment
+        # Step the environment
+        next_observation, reward, done, info = env.step(action)
 
         next_observation = np.asarray(next_observation)
         truncated = info.get("TimeLimit.truncated", False)
 
-        # TODO(student): Add the data to the replay buffer
+        # Add the data to the replay buffer
         if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
-            # We're using the memory-efficient replay buffer,
-            # so we only insert next_observation (not observation)
-            ...
+            replay_buffer.add_sample(next_observation, action, reward, done or truncated)
         else:
-            # We're using the regular replay buffer
-            ...
+            replay_buffer.add_sample(observation, action, reward, next_observation, done or truncated)
 
         # Handle episode termination
         if done:
@@ -118,14 +116,21 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
         # Main DQN training loop
         if step >= config["learning_starts"]:
-            # TODO(student): Sample config["batch_size"] samples from the replay buffer
-            batch = ...
+            # Sample batch from the replay buffer
+            batch = replay_buffer.sample_batch(config["batch_size"])
 
             # Convert to PyTorch tensors
             batch = ptu.from_numpy(batch)
 
-            # TODO(student): Train the agent. `batch` is a dictionary of numpy arrays,
-            update_info = ...
+            # Train the agent. `batch` is a dictionary of numpy arrays,
+            update_info = agent.update(
+                obs=batch['obs'],
+                action=batch['action'],
+                reward=batch['reward'],
+                next_obs=batch['next_obs'],
+                done=batch['done'],
+                step=step
+            )
 
             # Logging code
             update_info["epsilon"] = epsilon
@@ -135,6 +140,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                 for k, v in update_info.items():
                     logger.log_scalar(v, k, step)
                 logger.flush()
+
 
         if step % args.eval_interval == 0:
             # Evaluate
