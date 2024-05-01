@@ -2,7 +2,7 @@
 
 # Launches a command on the remote instance. Ensures that your code is synchronized to the remote instance beforehand.
 
-export ZONE="us-west1-b"
+export ZONE="europe-central2-b"
 export INSTANCE_NAME="cs285"
 
 echo "Starting instance..."
@@ -34,7 +34,7 @@ echo "Running command..."
 CMD="
   tmux new -d ' 
     bash -lic '\''$*'\''
-    sleep 5m 
+    sleep 240m
     sudo shutdown now'
 "
 

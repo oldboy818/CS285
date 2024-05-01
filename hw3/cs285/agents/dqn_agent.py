@@ -64,7 +64,8 @@ class DQNAgent(nn.Module):
         else:
             action = best_action
         ########################################################################################################
-        return ptu.to_numpy(action).squeeze(0).item()
+        # return ptu.to_numpy(action).squeeze(0).item()
+        return action
 
     def update_critic(
         self,
@@ -93,7 +94,7 @@ class DQNAgent(nn.Module):
             # calculate target Q values for the current action
             # done = True면, '1 - done'은 0이 되어 'next_q_values'의 영향을 받지 않도록 한다.
             # 즉, 에피소드가 끝났을 때 미래 보상을 고려하지 않고 현재 보상만 고려하게 된다.
-            target_values = reward + self.discount * next_q_values * (1 - done)
+            target_values = reward + self.discount * next_q_values * done
             ##################################################################################
 
         # TODO(student): train the critic with the target values

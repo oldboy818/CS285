@@ -130,17 +130,17 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         if step >= config["learning_starts"]:
             # TODO(student): Sample config["batch_size"] samples from the replay buffer
             # sample batch from the replay_buffer
-            batch = replay_buffer.sample_batch(config["batch_size"])
+            batch = replay_buffer.sample(config["batch_size"])
 
             # Convert to PyTorch tensors
             batch = ptu.from_numpy(batch)
 
             # TODO(student): Train the agent. `batch` is a dictionary of numpy arrays,
-            update_info = agent.update(obs=batch['obs'],
-                                       action=batch['action'],
-                                       reward=batch['reward'],
-                                       next_obs=batch['next_bos'],
-                                       done=batch['done'],
+            update_info = agent.update(obs=batch['observations'],
+                                       action=batch['actions'],
+                                       reward=batch['rewards'],
+                                       next_obs=batch['next_observations'],
+                                       done=batch['dones'],
                                        step=step)
 
             # Logging code

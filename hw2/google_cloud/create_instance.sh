@@ -2,7 +2,7 @@
 
 # Creates a new GPU instance, transfers the code to it, and runs some installation steps.
 
-export ZONE="us-west1-b"
+export ZONE="europe-central2-b"
 export INSTANCE_NAME="cs285"
 
 echo "Creating instance..."
@@ -51,4 +51,3 @@ gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command='
 echo "-------------------------------------"
 echo "Shutting down..."
 gcloud compute instances stop $INSTANCE_NAME --zone=$ZONE
-
