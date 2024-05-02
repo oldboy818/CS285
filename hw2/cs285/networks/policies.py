@@ -55,7 +55,7 @@ class MLPPolicy(nn.Module):
 
         self.discrete = discrete
 
-    @torch.no_grad()
+
     def get_action(self, obs: np.ndarray) -> np.ndarray:
         """Takes a single observation (as a numpy array) and returns a single action (as a numpy array)."""
         # TODO: implement get_action

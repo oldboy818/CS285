@@ -2,7 +2,7 @@
 
 # Launches tensorboard on the remote instance, forwarding the port to your local machine.
 
-export ZONE="us-west1-b"
+export ZONE="europe-central2-c"
 export INSTANCE_NAME="cs285"
 
 gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command='sudo pkill -f tensorboard'

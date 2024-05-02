@@ -77,6 +77,8 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
         observation = env.reset()
 
+        print("obser shape in reset_env_training: ", observation.shape)
+
         assert not isinstance(
             observation, tuple
         ), "env.reset() must return np.ndarray - make sure your Gym version uses the old step API"
@@ -85,7 +87,10 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
             replay_buffer.on_reset(observation=observation[-1, ...])
 
+        print("obser shape in after reset_env_training: ", observation.shape)
+
     reset_env_training()
+
 
     for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
         epsilon = exploration_schedule.value(step)
@@ -99,6 +104,8 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         next_observation = np.asarray(next_observation)
         truncated = info.get("TimeLimit.truncated", False)
 
+        print("obser shape: ", observation.shape, "  next_obser shape : ", next_observation.shape)
+
         # TODO(student): Add the data to the replay buffer
         if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
             # We're using the memory-efficient replay buffer,
@@ -106,7 +113,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             replay_buffer.insert(
                 action=action,
                 reward=reward,
-                next_observation=next_observation,
+                next_observation=next_observation[-1, ...],
                 done=done or truncated)
         else:
             # We're using the regular replay buffer

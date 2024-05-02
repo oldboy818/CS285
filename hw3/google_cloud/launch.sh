@@ -34,7 +34,7 @@ echo "Running command..."
 CMD="
   tmux new -d ' 
     bash -lic '\''$*'\''
-    sleep 20m 
+    sleep 5m
     sudo shutdown now'
 "
 

@@ -50,22 +50,20 @@ class DQNAgent(nn.Module):
         # TODO(student): get the action from the critic using an epsilon-greedy strategy
         ########################################################################################################
 
-        with torch.no_grad():
-            # get Q values from critic
-            q_vals = self.critic(observation)
-            # get action that maximize Q values
-            best_action = torch.argmax(q_vals, dim=1).item()
-
-        if np.random.random() < epsilon:    # best_action이 아닌 경우
-            # choose a random action excluding the best action
-            possible_actions = [act for act in range(self.num_actions) if act != best_action]
-            action = np.random.choice(possible_actions)
-
+        # Exploitation: choose the best action
+        if np.random.rand() > epsilon:
+            with torch.no_grad():
+                # get Q values from critic
+                q_values = self.critic(observation)
+                # get action that maximize Q values
+                action = torch.argmax(q_values, dim=1)
+        # Exploration: choose a random action
         else:
-            action = best_action
+            action = torch.tensor([np.random.randint(self.num_actions)])
+
+        return ptu.to_numpy(action).squeeze(0).item()
         ########################################################################################################
-        # return ptu.to_numpy(action).squeeze(0).item()
-        return action
+        
 
     def update_critic(
         self,
@@ -82,26 +80,32 @@ class DQNAgent(nn.Module):
         with torch.no_grad():
             # TODO(student): compute target values
             ##################################################################################
-            next_qa_values = self.target_critic(next_obs)
+            next_qa_values = self.target_critic(next_obs)   # (batch, num_act)
 
             if self.use_double_q:
-                raise NotImplementedError
+                # Compute Q-values for next states using main critic
+                next_qa_values_online = self.critic(next_obs)
+                # Select the best action indices based on main critic's output
+                next_action = torch.argmax(next_qa_values_online, dim=1)
+
             else:
                 next_action = torch.argmax(next_qa_values, dim=1)
-            
-            # select corresponding Q values directly using indexing
-            next_q_values = next_qa_values[torch.arange(batch_size), next_action]
+            # select corresponding Q values using max
+            next_q_values = next_qa_values.gather(1, next_action.unsqueeze(-1))   # (batch, )
+
             # calculate target Q values for the current action
-            # done = True면, '1 - done'은 0이 되어 'next_q_values'의 영향을 받지 않도록 한다.
-            # 즉, 에피소드가 끝났을 때 미래 보상을 고려하지 않고 현재 보상만 고려하게 된다.
-            target_values = reward + self.discount * next_q_values * done
+            # 'done' 텐서를 float로 변환하고 차원을 맞춤
+            done = done.float().unsqueeze(-1)  # (batch, 1)
+            # calculate target Q values for the current action
+            target_values = reward.unsqueeze(-1) + (1 - done) * self.discount * next_q_values   # (batch, 1)
             ##################################################################################
 
         # TODO(student): train the critic with the target values
         ##################################################################################
-        qa_values = self.critic(obs)
-        # 'qa_values'의 dim=1 즉, 각 배치 사이즈의 액션 차원에 대해 action.unsqueeze(1)이 제공하는 인덱스를 선택
-        q_values = qa_values.gather(1, action.unsqueeze(1)).squeeze(1) # Compute from the data actions; see torch.gather
+        qa_values = self.critic(obs)    # (batch, num_act)
+        # 'qa_values'의 dim=1 즉, 각 배치 사이즈의 액션 차원에 대해 action.unsqueeze(-1)이 제공하는 인덱스를 선택
+        q_values = qa_values.gather(1, action.unsqueeze(-1)) # Compute from the data actions; see torch.gather
+
         loss = self.critic_loss(q_values, target_values)
         ##################################################################################
 
