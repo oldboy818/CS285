@@ -29,16 +29,16 @@ class SoftActorCritic(nn.Module):
         target_update_period: Optional[int] = None,
         soft_target_update_rate: Optional[float] = None,
         # Actor-critic configuration
-        actor_gradient_type: str = "None",  # One of "reinforce" or "reparametrize"
+        actor_gradient_type: str = "reparametrize",  # One of "reinforce" or "reparametrize"
         num_actor_samples: int = 1,
         num_critic_updates: int = 1,
         # Settings for multiple critics
         num_critic_networks: int = 1,
-        target_critic_backup_type: str = "None",  # One of "doubleq", "min", "redq", or "mean"
+        target_critic_backup_type: str = "mean",  # One of "doubleq", "min", "redq", or "mean"
         # Soft actor-critic
         use_entropy_bonus: bool = False,
         temperature: float = 0.0,
-        backup_entropy: bool = False,
+        backup_entropy: bool = True,
     ):
         super().__init__()
 
@@ -184,7 +184,6 @@ class SoftActorCritic(nn.Module):
         """
         (batch_size,) = reward.shape
 
-
         # Compute target values
         # Important: we don't need gradients for target values!
         with torch.no_grad():
@@ -196,7 +195,6 @@ class SoftActorCritic(nn.Module):
 
             # Compute the next Q-values for the sampled actions
             next_qs = self.target_critic(next_obs, next_action)
-
             ##################################################################################################
 
             # Handle Q-values from multiple different target critic networks (if necessary)
@@ -211,8 +209,8 @@ class SoftActorCritic(nn.Module):
             if self.use_entropy_bonus and self.backup_entropy:
                 # TODO(student): Add entropy bonus to the target values for SAC
                 ##################################################################################################
-                next_action_entropy = ...
-                next_qs += ...
+                next_action_entropy = self.entropy(next_action_distribution)
+                next_qs += self.temperature * next_action_entropy
                 ##################################################################################################
 
             # Compute the target Q-value
@@ -253,7 +251,18 @@ class SoftActorCritic(nn.Module):
         # TODO(student): Compute the entropy of the action distribution.
         # Note: Think about whether to use .rsample() or .sample() here...
         ##################################################################################################
-        return ...
+        action_sample = action_distribution.rsample()
+
+        # Compute log probabilities of the sampled actions
+        log_probs = action_distribution.log_prob(action_sample)
+
+        # Calculate the negative log probabilities
+        negative_log_probs = -log_probs
+        
+        # Estimate the entropy as the mean of the negative log probabilities
+        approximated_entropy = negative_log_probs.mean()
+        
+        return approximated_entropy
         ##################################################################################################
 
     def actor_loss_reinforce(self, obs: torch.Tensor):
@@ -267,7 +276,7 @@ class SoftActorCritic(nn.Module):
         with torch.no_grad():
             # TODO(student): draw num_actor_samples samples from the action distribution for each batch element
             ##################################################################################################
-            action = ...
+            action = action_distribution.sample(self.num_actor_samples)
             ##################################################################################################
             assert action.shape == (
                 self.num_actor_samples,
@@ -277,7 +286,7 @@ class SoftActorCritic(nn.Module):
 
             # TODO(student): Compute Q-values for the current state-action pair
             ##################################################################################################
-            q_values = ...
+            q_values = self.critic(obs, action)
             ##################################################################################################
             assert q_values.shape == (
                 self.num_critic_networks,
@@ -306,17 +315,17 @@ class SoftActorCritic(nn.Module):
         # TODO(student): Sample actions
         # Note: Think about whether to use .rsample() or .sample() here...
         ##################################################################################################
-        action = ...
+        action = action_distribution.rsample()
         ##################################################################################################
 
         # TODO(student): Compute Q-values for the sampled state-action pair
         ##################################################################################################
-        q_values = ...
+        q_values = self.critic(obs, action)
         ##################################################################################################
 
         # TODO(student): Compute the actor loss
         ##################################################################################################
-        loss = ...
+        loss = -q_values.mean()
         ##################################################################################################
 
         return loss, torch.mean(self.entropy(action_distribution))
@@ -381,7 +390,8 @@ class SoftActorCritic(nn.Module):
 
         # TODO(student): Update the actor
         ##################################################################################################
-        actor_info = {"actor_loss": 0, "entropy": 0}
+        # actor_info = {"actor_loss": 0, "entropy": 0}
+        actor_info = self.update_actor(observations)
         ##################################################################################################
 
         # TODO(student): Perform either hard or soft target updates.
