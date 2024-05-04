@@ -77,8 +77,6 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
         observation = env.reset()
 
-        print("obser shape in reset_env_training: ", observation.shape)
-
         assert not isinstance(
             observation, tuple
         ), "env.reset() must return np.ndarray - make sure your Gym version uses the old step API"
@@ -87,8 +85,6 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
             replay_buffer.on_reset(observation=observation[-1, ...])
 
-        print("obser shape in after reset_env_training: ", observation.shape)
-
     reset_env_training()
 
 
@@ -96,17 +92,20 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         epsilon = exploration_schedule.value(step)
         
         # TODO(student): Compute action
+        ##############################################################
         action = agent.get_action(observation, epsilon)
+        ##############################################################
 
         # TODO(student): Step the environment
+        ##############################################################
         next_observation, reward, done, info = env.step(action)
+        ##############################################################
 
         next_observation = np.asarray(next_observation)
         truncated = info.get("TimeLimit.truncated", False)
 
-        print("obser shape: ", observation.shape, "  next_obser shape : ", next_observation.shape)
-
         # TODO(student): Add the data to the replay buffer
+        ##############################################################
         if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
             # We're using the memory-efficient replay buffer,
             # so we only insert next_observation (not observation)
@@ -123,6 +122,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                 reward=reward,
                 next_observation=next_observation,
                 done=done or truncated)
+        ##############################################################
 
         # Handle episode termination
         if done:
@@ -136,6 +136,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         # Main DQN training loop
         if step >= config["learning_starts"]:
             # TODO(student): Sample config["batch_size"] samples from the replay buffer
+            #######################################################################################
             # sample batch from the replay_buffer
             batch = replay_buffer.sample(config["batch_size"])
 
@@ -149,6 +150,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                                        next_obs=batch['next_observations'],
                                        done=batch['dones'],
                                        step=step)
+            #######################################################################################
 
             # Logging code
             update_info["epsilon"] = epsilon

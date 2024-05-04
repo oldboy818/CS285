@@ -57,6 +57,7 @@ class DQNAgent(nn.Module):
                 q_values = self.critic(observation)
                 # get action that maximize Q values
                 action = torch.argmax(q_values, dim=1)
+        
         # Exploration: choose a random action
         else:
             action = torch.tensor([np.random.randint(self.num_actions)])
@@ -84,18 +85,20 @@ class DQNAgent(nn.Module):
 
             if self.use_double_q:
                 # Compute Q-values for next states using main critic
-                next_qa_values_online = self.critic(next_obs)
+                next_qa_values_double = self.critic(next_obs)
                 # Select the best action indices based on main critic's output
-                next_action = torch.argmax(next_qa_values_online, dim=1)
+                next_action = torch.argmax(next_qa_values_double, dim=1)
 
             else:
                 next_action = torch.argmax(next_qa_values, dim=1)
+
             # select corresponding Q values using max
             next_q_values = next_qa_values.gather(1, next_action.unsqueeze(-1))   # (batch, )
 
             # calculate target Q values for the current action
             # 'done' 텐서를 float로 변환하고 차원을 맞춤
             done = done.float().unsqueeze(-1)  # (batch, 1)
+            
             # calculate target Q values for the current action
             target_values = reward.unsqueeze(-1) + (1 - done) * self.discount * next_q_values   # (batch, 1)
             ##################################################################################
