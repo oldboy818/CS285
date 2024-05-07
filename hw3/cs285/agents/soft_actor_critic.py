@@ -36,7 +36,7 @@ class SoftActorCritic(nn.Module):
         num_critic_networks: int = 1,
         target_critic_backup_type: str = "mean",  # One of "doubleq", "min", "redq", or "mean"
         # Soft actor-critic
-        use_entropy_bonus: bool = True,
+        use_entropy_bonus: bool = False,
         temperature: float = 0.0,
         backup_entropy: bool = True,
     ):
@@ -152,20 +152,32 @@ class SoftActorCritic(nn.Module):
             # Swap Q-values
             # 'torch.roll' : 텐서의 요소를 지정된 차원(dims)을 따라 shifts만큼 이동
             next_qs = torch.roll(next_qs, shifts=1, dims=0)
+            # print("111111111111111111111111111111111111111111111111")
         
         elif self.target_critic_backup_type == "min":
             # Take the minimum Q-value across critics
             # torch.min : 주어진 차원(dim)을 따라 최소값을 계산
-            next_qs = torch.min(next_qs, dim=0, keepdim=True)[0].expand(num_critic_networks, -1)
-        
+            next_qs = torch.min(next_qs, dim=0)[0]
+            # print("222222222222222222222222222222222222222222222222222222")
+
         elif self.target_critic_backup_type == "mean":
             # Take the average Q-value across critics
             next_qs = torch.mean(next_qs, dim=0).unsqueeze(0)
-
+            # print("333333333333333333333333333333333333333333333333333333333")
+# (Optional, bonus) Ensembled clipped double-Q: learn many critics (10 is common) and keep a target network for each. To compute target values, first run all the critics and sample two Q-values for each sample. Then, take the minimum (as in clipped double-Q). If you want to learn more about this, you can check out “Randomized Ensembled Double-Q”: https://arxiv.org/abs/2101.05982.
+# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/sanity_pendulum.yaml
+# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/sanity_invertedpendulum_reinforce.yaml
+# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/halfcheetah_reinforce1.yaml
+# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/halfcheetah_reinforce10.yaml
+# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/hopper.yaml
+# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/hopper_doubleq.yaml
+# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/hopper_clipq.yaml
+# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/hopper_REDQ.yaml
         else:
             # Default, we don't need to do anything.
+            # print("444444444444444444444444444444444444444444444444444444444444444444444444")
             pass
-
+        
         # print("############################      next_qs 2         #########################", next_qs.shape, type(next_qs))
         # If our backup strategy removed a dimension, add it back in explicitly
         # (assume the target for each critic will be the same)
@@ -223,7 +235,7 @@ class SoftActorCritic(nn.Module):
 
             # Compute the target Q-value
             ##################################################################################################
-            target_values: torch.Tensor = reward.unsqueeze(0) + self.discount * next_qs * (1 - done.float()).unsqueeze(0)
+            target_values: torch.Tensor = reward + self.discount * next_qs * (1 - done.float())
             ##################################################################################################
             assert target_values.shape == (
                 self.num_critic_networks,
@@ -295,10 +307,11 @@ class SoftActorCritic(nn.Module):
             ##################################################################################################
             # obs: [batch_size, obs_dim]이고 action: [num_actor_samples, batch_size, action_dim]
             # 따라서 obs 텐서를 샘플 차원에 맞게 확장합니다.
-            obs = obs.unsqueeze(0).expand(action.size(0), -1, -1)
+            obs = obs.unsqueeze(0).expand(self.num_actor_samples, -1, -1)
             
+            # print("======================================", obs.shape, action.shape)
             # Compute Q-values
-            q_values = self.critic(obs, action)
+            q_values = self.critic(obs=obs, action=action)
             ##################################################################################################
             assert q_values.shape == (
                 self.num_critic_networks,
@@ -314,7 +327,7 @@ class SoftActorCritic(nn.Module):
         # TODO(student)
         ##################################################################################################
         log_probs = action_distribution.log_prob(action)
-        loss = -(log_probs * advantage.detach()).mean()
+        loss = -(log_probs * advantage).mean()
         ##################################################################################################
         return loss, torch.mean(self.entropy(action_distribution))
 
@@ -387,9 +400,6 @@ class SoftActorCritic(nn.Module):
         """
         Update the actor and critic networks.
         """
-
-        # print("######################################################", self.use_entropy_bonus)
-        # print("######################################################", self.actor_gradient_type)
 
         critic_infos = []
         # TODO(student): Update the critic for num_critic_upates steps, and add the output stats to critic_infos
