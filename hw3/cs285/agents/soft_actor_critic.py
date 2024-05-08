@@ -164,7 +164,7 @@ class SoftActorCritic(nn.Module):
             # Take the average Q-value across critics
             next_qs = torch.mean(next_qs, dim=0).unsqueeze(0)
             # print("333333333333333333333333333333333333333333333333333333333")
-# (Optional, bonus) Ensembled clipped double-Q: learn many critics (10 is common) and keep a target network for each. To compute target values, first run all the critics and sample two Q-values for each sample. Then, take the minimum (as in clipped double-Q). If you want to learn more about this, you can check out “Randomized Ensembled Double-Q”: https://arxiv.org/abs/2101.05982.
+
 # python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/sanity_pendulum.yaml
 # python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/sanity_invertedpendulum_reinforce.yaml
 # python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/halfcheetah_reinforce1.yaml
