@@ -8,8 +8,8 @@ Assignments for [Berkeley CS 285: Deep Reinforcement Learning, Decision Making, 
 
 ### Assignment2 : Policy Gradients
 * Q1: Reward-to-go [__(Report)__](https://velog.io/@oldboy818/CS285HW2Policy-Gradients)
-* Q2: Neural Network Baselines
-* Q3: Generalized Advantage estimation
+* Q2: Neural Network Baselines [__(Done_Report)__](https://velog.io/@oldboy818/CS285HW2Policy-GradientsNeural-Network-Baselines)
+* Q3: Generalized Advantage estimation [__(Done_Report)__](https://velog.io/@oldboy818/Policy-GradientsGeneralized-Advantage-EstimationCS285HW2)
 * Q4: Advantage Normalization
 
 ### Assignment3 : Q-learning and Actor-Critic Algorithms
