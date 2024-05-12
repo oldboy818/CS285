@@ -165,14 +165,6 @@ class SoftActorCritic(nn.Module):
             next_qs = torch.mean(next_qs, dim=0).unsqueeze(0)
             # print("333333333333333333333333333333333333333333333333333333333")
 
-# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/sanity_pendulum.yaml
-# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/sanity_invertedpendulum_reinforce.yaml
-# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/halfcheetah_reinforce1.yaml
-# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/halfcheetah_reinforce10.yaml
-# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/hopper.yaml
-# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/hopper_doubleq.yaml
-# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/hopper_clipq.yaml
-# python cs285/scripts/run_hw3_sac.py -cfg experiments/sac/hopper_REDQ.yaml
         else:
             # Default, we don't need to do anything.
             # print("444444444444444444444444444444444444444444444444444444444444444444444444")
