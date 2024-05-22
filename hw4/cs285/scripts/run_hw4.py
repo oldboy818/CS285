@@ -39,19 +39,37 @@ def collect_mbpo_rollout(
     rollout_len: int = 1,
 ):
     obs, acs, rewards, next_obs, dones = [], [], [], [], []
+
     for _ in range(rollout_len):
         # TODO(student): collect a rollout using the learned dynamics models
         # HINT: get actions from `sac_agent` and `next_ob` predictions from `mb_agent`.
         # Average the ensemble predictions directly to get the next observation.
         # Get the reward using `env.get_reward`.
+        #=================================================================================================
+        # get action from sac_agent
+        ac = sac_agent.get_action(ob)
+
+        # get next_ob predictions from mb_agent
+        next_obs_predictions = []
+
+        for model_idx in range(mb_agent.ensemble_size):
+            next_ob_prediction = mb_agent.get_dynamics_predictions(model_idx, np.array([ob]), np.array([ac]))
+            next_obs_predictions.append(next_ob_prediction)
+        
+        # Average the ensemble predictions directly to get the next observation
+        next_ob = np.mean(next_obs_predictions, axis=0)[0]
+
+        # get the reward using env.get_reward
+        reward, _ = env.get_reward(ob, ac)
 
         obs.append(ob)
         acs.append(ac)
-        rewards.append(rew)
+        rewards.append(reward)
         next_obs.append(next_ob)
         dones.append(False)
 
         ob = next_ob
+        #=================================================================================================
 
     return {
         "observation": np.array(obs),
@@ -201,10 +219,10 @@ def run_training_loop(
 
         # for MBPO: now we need to train the SAC agent
         if sac_config is not None:
+
             print("Training SAC agent...")
-            for i in tqdm.trange(
-                sac_config["num_agent_train_steps_per_iter"], dynamic_ncols=True
-            ):
+            
+            for i in tqdm.trange(sac_config["num_agent_train_steps_per_iter"], dynamic_ncols=True):
                 if sac_config["mbpo_rollout_length"] > 0:
                     # collect a rollout using the dynamics model
                     rollout = collect_mbpo_rollout(
@@ -223,8 +241,10 @@ def run_training_loop(
                         next_observations=rollout["next_observation"],
                         dones=rollout["done"],
                     )
+                    
                 # train SAC
                 batch = sac_replay_buffer.sample(sac_config["batch_size"])
+                batch = ptu.from_numpy(batch)
                 sac_agent.update(
                     batch["observations"],
                     batch["actions"],

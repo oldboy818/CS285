@@ -163,7 +163,7 @@ class ModelBasedAgent(nn.Module):
         # HINT: make sure to *unnormalize* the NN outputs (observation deltas)
         # Same hints as `update` above, avoid nasty divide-by-zero errors when
         # normalizing inputs!
-        #=================================================================================================
+        #=================================================================================================      
         # 관측치와 행동을 합해준다. (s, a)
         obs_acs = torch.cat([obs, acs], dim=1)
         
@@ -314,7 +314,7 @@ class ModelBasedAgent(nn.Module):
                 elite_indices = np.argsort(rewards)[-self.cem_num_elites:]
                 elite_sequences = action_sequences[elite_indices]
 
-                # distribution의 parameter인 mean과 variance 업데이트
+                # 선택된 elites의 distribution parameter인 mean과 variance 업데이트
                 elite_mean_new = np.mean(elite_sequences, axis=0)
                 elite_std_new = np.std(elite_sequences, axis=0) + 1e-6
 

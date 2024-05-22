@@ -9,7 +9,6 @@ import numpy as np
 
 import cs285.infrastructure.pytorch_util as ptu
 
-
 class SoftActorCritic(nn.Module):
     def __init__(
         self,
@@ -334,6 +333,7 @@ class SoftActorCritic(nn.Module):
         # TODO(student): Sample actions
         # Note: Think about whether to use .rsample() or .sample() here...
         ##################################################################################################
+        # reparameterize 방법은 행동 분포에서 gradient 정보가 담긴 sampling을 해야 하므로 rsample()
         action = action_distribution.rsample()
         ##################################################################################################
 
