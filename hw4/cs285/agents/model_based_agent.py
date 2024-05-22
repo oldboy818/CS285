@@ -222,6 +222,8 @@ class ModelBasedAgent(nn.Module):
             # HINT: use self.get_dynamics_predictions
             #=================================================================================================
             next_obs = np.zeros_like(obs)
+
+            # 각 앙상블에 따라 서로 다른 predicted next_obs
             for model_idx in range(self.ensemble_size):
                 next_obs[model_idx] = self.get_dynamics_predictions(
                     model_idx, obs[model_idx], acs 
@@ -277,16 +279,55 @@ class ModelBasedAgent(nn.Module):
             # evaluate each action sequence and return the best one
             rewards = self.evaluate_action_sequences(obs, action_sequences)
             assert rewards.shape == (self.mpc_num_action_sequences,)
+            
             best_index = np.argmax(rewards)
             return action_sequences[best_index][0]
         
         elif self.mpc_strategy == "cem":
             elite_mean, elite_std = None, None
+
             for i in range(self.cem_num_iters):
                 # TODO(student): implement the CEM algorithm
                 # HINT: you need a special case for i == 0 to initialize
                 # the elite mean and std
-                print("  ")
+                #=================================================================================================
+                # 첫 번째 반복에서 action_sequences를 표준 정규분포로 초기화
+                if i == 0:
+                    action_sequences = np.random.normal(
+                        loc=0,
+                        scale=1,
+                        size=(self.mpc_num_action_sequences, self.mpc_horizon, self.ac_dim)
+                    )
+                # 이후 반복에는 elite의 평균과 표준편차를 이용한 정규분포
+                else:
+                    action_sequences = np.random.normal(
+                        loc=elite_mean,
+                        scale=elite_std,
+                        size=(self.mpc_num_action_sequences, self.mpc_horizon, self.ac_dim)
+                    )
 
+                # evaluate each action sequence and return the best one
+                rewards = self.evaluate_action_sequences(obs, action_sequences)
+                assert rewards.shape == (self.mpc_num_action_sequences,)
+
+                # 가장 높은 value를 가진 cem_num_elites개의 elites를 선택
+                elite_indices = np.argsort(rewards)[-self.cem_num_elites:]
+                elite_sequences = action_sequences[elite_indices]
+
+                # distribution의 parameter인 mean과 variance 업데이트
+                elite_mean_new = np.mean(elite_sequences, axis=0)
+                elite_std_new = np.std(elite_sequences, axis=0) + 1e-6
+
+                # update and refine the mean and variance of the sampling distribution for the next iteration
+                if elite_mean is None:
+                    elite_mean = elite_mean_new
+                    elite_std = elite_std_new
+                else:
+                    elite_mean = self.cem_alpha * elite_mean_new + (1 - self.cem_alpha) * elite_mean
+                    elite_std = self.cem_alpha * elite_std_new + (1 - self.cem_alpha) * elite_std
+
+            best_index = np.argmax(rewards)
+            return action_sequences[best_index][0]
+                #=================================================================================================
         else:
             raise ValueError(f"Invalid MPC strategy '{self.mpc_strategy}'")
