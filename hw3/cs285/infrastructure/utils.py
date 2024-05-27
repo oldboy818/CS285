@@ -10,7 +10,6 @@ from typing import Dict, Tuple, List
 ############################################
 ############################################
 
-
 def sample_trajectory(
     env: gym.Env, policy: MLPPolicy, max_length: int, render: bool = False
 ) -> Dict[str, np.ndarray]:
