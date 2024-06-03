@@ -140,7 +140,6 @@ class SoftActorCritic(nn.Module):
             torch.Tensor: Target values of shape (num_critics, batch_size). 
                 Leading dimension corresponds to target values FOR the different critics.
         """
-        # print("############################      next_qs 1        #########################", next_qs.shape, type(next_qs))
         assert (
             next_qs.ndim == 2
         ), f"next_qs should have shape (num_critics, batch_size) but got {next_qs.shape}"
@@ -152,25 +151,21 @@ class SoftActorCritic(nn.Module):
             # Swap Q-values
             # 'torch.roll' : 텐서의 요소를 지정된 차원(dims)을 따라 shifts만큼 이동
             next_qs = torch.roll(next_qs, shifts=1, dims=0)
-            # print("111111111111111111111111111111111111111111111111")
         
         elif self.target_critic_backup_type == "min":
             # Take the minimum Q-value across critics
             # torch.min : 주어진 차원(dim)을 따라 최소값을 계산
             next_qs = torch.min(next_qs, dim=0)[0]
-            # print("222222222222222222222222222222222222222222222222222222")
 
         elif self.target_critic_backup_type == "mean":
             # Take the average Q-value across critics
-            next_qs = torch.mean(next_qs, dim=0).unsqueeze(0)
-            # print("333333333333333333333333333333333333333333333333333333333")
+            # next_qs = torch.mean(next_qs, dim=0).unsqueeze(0)
+            next_qs = torch.mean(next_qs, dim=0)[0]
 
         else:
             # Default, we don't need to do anything.
-            # print("444444444444444444444444444444444444444444444444444444444444444444444444")
             pass
         
-        # print("############################      next_qs 2         #########################", next_qs.shape, type(next_qs))
         # If our backup strategy removed a dimension, add it back in explicitly
         # (assume the target for each critic will be the same)
         if next_qs.shape == (batch_size,):
@@ -200,14 +195,14 @@ class SoftActorCritic(nn.Module):
         with torch.no_grad():
             # TODO(student)
             ##################################################################################################
-            # Sample from the actor
+            # Sample from the actor. target value가 represent the value of the latest policy
+            # Buffer에서 sampling하는게 아니라 현재 policy에서 sampling하여 다음 state가 현재 정책에 의해 결정될 다음 action의 가치를 반영하도록.
             next_action_distribution: torch.distributions.Distribution = self.actor(next_obs)
             next_action = next_action_distribution.sample()
 
             # Compute the next Q-values for the sampled actions
             next_qs = self.target_critic(next_obs, next_action)
             ##################################################################################################
-            # print("#########    next_qs shape :    ", next_qs.shape, type(next_qs))
 
             # Handle Q-values from multiple different target critic networks (if necessary)
             # (For double-Q, clip-Q, etc.)
@@ -262,6 +257,7 @@ class SoftActorCritic(nn.Module):
         # TODO(student): Compute the entropy of the action distribution.
         # Note: Think about whether to use .rsample() or .sample() here...
         ##################################################################################################
+        # reparameterization sampling. 
         action_sample = action_distribution.rsample()
 
         # Compute log probabilities of the sampled actions
@@ -301,7 +297,6 @@ class SoftActorCritic(nn.Module):
             # 따라서 obs 텐서를 샘플 차원에 맞게 확장합니다.
             obs = obs.unsqueeze(0).expand(self.num_actor_samples, -1, -1)
             
-            # print("======================================", obs.shape, action.shape)
             # Compute Q-values
             q_values = self.critic(obs=obs, action=action)
             ##################################################################################################

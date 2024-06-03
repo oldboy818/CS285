@@ -112,6 +112,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             replay_buffer.insert(
                 action=action,
                 reward=reward,
+                # atari 게임의 각 프레임씩 넣어주기
                 next_observation=next_observation[-1, ...],
                 done=done or truncated)
         else:
