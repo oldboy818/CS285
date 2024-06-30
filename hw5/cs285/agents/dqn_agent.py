@@ -47,10 +47,22 @@ class DQNAgent(nn.Module):
         observation = ptu.from_numpy(np.asarray(observation))[None]
 
         # TODO(student): get the action from the critic using an epsilon-greedy strategy
-        raise NotImplementedError
-        action = ...
+        ########################################################################################################
+
+        # Exploitation: choose the best action
+        if np.random.rand() > epsilon:
+            with torch.no_grad():
+                # get Q values from critic
+                q_values = self.critic(observation)
+                # get action that maximize Q values
+                action = torch.argmax(q_values, dim=1)
+        
+        # Exploration: choose a random action
+        else:
+            action = torch.tensor([np.random.randint(self.num_actions)])
 
         return ptu.to_numpy(action).squeeze(0).item()
+        ########################################################################################################
 
     def compute_critic_loss(
         self,
@@ -70,6 +82,41 @@ class DQNAgent(nn.Module):
         """
 
         # TODO(student): paste in your code from HW3, and make sure the return values exist
+        # Compute target values
+        with torch.no_grad():
+            # TODO(student): compute target values
+            ##################################################################################
+            next_qa_values = self.target_critic(next_obs)   # (batch, num_act)
+
+            if self.use_double_q:
+                # Compute Q-values for next states using main critic
+                next_qa_values_double = self.critic(next_obs)
+                # Select the best action indices based on main critic's output
+                next_action = torch.argmax(next_qa_values_double, dim=1)
+
+            else:
+                next_action = torch.argmax(next_qa_values, dim=1)
+
+            # select corresponding Q values using max
+            next_q_values = next_qa_values.gather(1, next_action.unsqueeze(-1))   # (batch, )
+
+            # calculate target Q values for the current action
+            # 'done' 텐서를 float로 변환하고 차원을 맞춤
+            done = done.float().unsqueeze(-1)  # (batch, 1)
+            
+            # calculate target Q values for the current action
+            target_values = reward.unsqueeze(-1) + (1 - done) * self.discount * next_q_values   # (batch, 1)
+            ##################################################################################
+
+        # TODO(student): train the critic with the target values
+        ##################################################################################
+        qa_values = self.critic(obs)    # (batch, num_act)
+        # 'qa_values'의 dim=1 즉, 각 배치 사이즈의 액션 차원에 대해 action.unsqueeze(-1)이 제공하는 인덱스를 선택
+        q_values = qa_values.gather(1, action.unsqueeze(-1)) # Compute from the data actions; see torch.gather
+
+        loss = self.critic_loss(q_values, target_values)
+        ##################################################################################
+        '''
         raise NotImplementedError
         with torch.no_grad():
             next_qa_values = ...
@@ -84,7 +131,7 @@ class DQNAgent(nn.Module):
 
             target_values = ...
             assert target_values.shape == (batch_size,), target_values.shape
-
+        '''
         return (
             loss,
             {
@@ -97,6 +144,7 @@ class DQNAgent(nn.Module):
                 "q_values": q_values,
             },
         )
+
 
     def update_critic(
         self,
@@ -137,5 +185,11 @@ class DQNAgent(nn.Module):
         Update the DQN agent, including both the critic and target.
         """
         # TODO(student): paste in your code from HW3
+        ##################################################################################
+        critic_stats = self.update_critic(obs, action, reward, next_obs, done)
 
+        # Update the target network when needed
+        if step % self.target_update_period == 0:
+            self.update_target_critic()
+        ##################################################################################
         return critic_stats
