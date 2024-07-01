@@ -22,7 +22,7 @@ from scripting_utils import make_logger, make_config
 
 MAX_NVIDEO = 2
 
-
+# 환경과 에이전트의 관찰값을 시각화. 주로 방문한 상태를 산점도로 표시. 
 def visualize(env: Pointmass, agent, observations: torch.Tensor):
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(10, 10))
@@ -56,7 +56,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     torch.manual_seed(args.seed)
     ptu.init_gpu(use_gpu=not args.no_gpu, gpu_id=args.which_gpu)
 
-    # make the gym environment
+    ############## make the gym environment ##############
     env = config["make_env"]()
     exploration_schedule = config.get("exploration_schedule", None)
     discrete = isinstance(env.action_space, gym.spaces.Discrete)
@@ -69,18 +69,21 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         env.action_space.n,
         **config["agent_kwargs"],
     )
+    ###################################################
 
     ep_len = env.spec.max_episode_steps or env.max_episode_steps
 
     observation = None
 
-    # Replay buffer
+    ############## Replay buffer 초기화 ##############
     replay_buffer = ReplayBuffer(capacity=config["total_steps"])
 
     observation = env.reset()
+    ##########################################
 
     recent_observations = []
 
+    ############## training loop ##############
     for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
         if exploration_schedule is not None:
             epsilon = exploration_schedule.value(step)
@@ -168,9 +171,9 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                 step,
                 "eval"
             )
+    ##########################################
 
-
-    # Save the final dataset
+    ############### Save the final dataset 최종 데이터셋 저장 및 시각화 ##############
     dataset_file = os.path.join(args.dataset_dir, f"{config['dataset_name']}.pkl")
     with open(dataset_file, "wb") as f:
         pickle.dump(replay_buffer, f)
@@ -182,6 +185,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     filename = os.path.join("exploration_visualization", f"{config['log_name']}.png")
     fig.savefig(filename)
     print("Saved final heatmap to", filename)
+    ########################################################
 
 
 banner = """
