@@ -2,9 +2,7 @@ from typing import Callable, Optional, Sequence, Tuple, List
 import torch
 from torch import nn
 
-
 from cs285.agents.dqn_agent import DQNAgent
-
 
 class AWACAgent(DQNAgent):
     def __init__(
@@ -32,15 +30,21 @@ class AWACAgent(DQNAgent):
     ):
         with torch.no_grad():
             # TODO(student): compute the actor distribution, then use it to compute E[Q(s, a)]
-            next_qa_values = ...
+            ##################################################################################
+            # next_qa_values = ...
+            next_action_dist = self.actor(next_observations)
+            next_actions = next_action_dist.sample()
+
+            next_q_values = self.q_net_target(next_observations)
+            next_qa_values = torch.gather(next_q_values, 1, next_actions.unsqueeze(1)).squeeze(1)
+
 
             # Use the actor to compute a critic backup
-
-            next_qs = ...
+            # next_qs = ...
 
             # TODO(student): Compute the TD target
-            target_values = ...
-
+            # target_values = ...
+            ##################################################################################
         
         # TODO(student): Compute Q(s, a) and loss similar to DQN
         q_values = ...
