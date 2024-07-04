@@ -31,26 +31,31 @@ class AWACAgent(DQNAgent):
         with torch.no_grad():
             # TODO(student): compute the actor distribution, then use it to compute E[Q(s, a)]
             ##################################################################################
-            # next_qa_values = ...
+            # 다음 상태에서의 정책 분포. 즉, actor distribution
             next_action_dist = self.actor(next_observations)
-            next_actions = next_action_dist.sample()
-
-            next_q_values = self.q_net_target(next_observations)
-            next_qa_values = torch.gather(next_q_values, 1, next_actions.unsqueeze(1)).squeeze(1)
-
-
+            # 정책에서 샘플링된 액션으로 다음 상태에서의 Q 값 계산
+            next_qa_values = self.target_critic(next_observations)
+            
             # Use the actor to compute a critic backup
-            # next_qs = ...
-
+            # 모든 가능한 행동에 대한 Q값을 정책 분포의 확률로 가중 평균된 Q값 계산
+            next_actions_probs = next_action_dist.probs # .probs : PyTorch 분포 객체의 확률 값을 반환
+            # compute E[Q(s', a')]
+            next_qs = torch.sum(next_actions_probs * next_qa_values, dim=-1)
+            ##################################################################################
+            
             # TODO(student): Compute the TD target
-            # target_values = ...
+            ##################################################################################
+            target_values = rewards + self.discount * next_qs * (dones)
             ##################################################################################
         
         # TODO(student): Compute Q(s, a) and loss similar to DQN
-        q_values = ...
+        ##################################################################################
+        qa_values = self.critic(observations)
+        q_values = qa_values.gather(1, actions.unsqueeze(-1)).squeeze(-1)
         assert q_values.shape == target_values.shape
 
-        loss = ...
+        loss = self.critic_loss(q_values, target_values)
+        ##################################################################################
 
         return (
             loss,
@@ -72,11 +77,16 @@ class AWACAgent(DQNAgent):
         action_dist: Optional[torch.distributions.Categorical] = None,
     ):
         # TODO(student): compute the advantage of the actions compared to E[Q(s, a)]
-        qa_values = ...
-        q_values = ...
-        values = ...
+        ##################################################################################
+        # advantage 함수는 '(정책 하의 Q값의 기대값) - (현재 Q값)'
+        # 현재 Q 값 계산
+        qa_values = self.critic(observations).gather(1, actions.unsqueeze(-1)).squeeze(-1)
+        # 현재 정책 하의 Q 값의 기대값
+        q_values = self.critic(observations)
+        values = torch.sum(action_dist.probs * q_values, dim=-1)
 
-        advantages = ...
+        advantages = qa_values - values
+        ##################################################################################
         return advantages
 
     def update_actor(
@@ -85,8 +95,18 @@ class AWACAgent(DQNAgent):
         actions: torch.Tensor,
     ):
         # TODO(student): update the actor using AWAC
-        loss = ...
+        ##################################################################################
+        # compute log actor distribution(policy)
+        action_dist = self.actor(observations)
+        log_prob = action_dist.log_prob(actions)
 
+        # compute weight
+        advantage = self.compute_advantage(observations, actions, action_dist)
+        weight = torch.exp(advantage / self.temperature)
+
+        # compute loss
+        loss = -torch.mean(log_prob * weight)
+        ##################################################################################
         self.actor_optimizer.zero_grad()
         loss.backward()
         self.actor_optimizer.step()
