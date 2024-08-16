@@ -13,12 +13,16 @@ Assignments for [Berkeley CS 285: Deep Reinforcement Learning, Decision Making, 
 * Q4: Advantage Normalization [__(Done)__](https://velog.io/@oldboy818/Policy-GradientsGeneralized-Advantage-EstimationCS285HW2)
 
 ### Assignment3 : Q-learning and Actor-Critic Algorithms
-* Q1. Q-learning
-* Q2. Actor-critic
-* Q3. Soft Actor-critic
+* Q1. Q-learning [__(Done)__](https://github.com/oldboy818/CS285/tree/main/hw3/data)
+* Q2. Actor-critic [__(Done)__](https://github.com/oldboy818/CS285/tree/main/hw3/data)
+* Q3. Soft Actor-critic [__(Done)__](https://github.com/oldboy818/CS285/tree/main/hw3/data)
 
 ### Assignment4 : Model-Based Reinforcement Learning
-* Q1.
+* Q1. Model-based RL [__(Done)__](https://github.com/oldboy818/CS285/blob/main/hw4/cs285/agents/model_based_agent.py)
 
 ### Assignment5 : Exploration and Offline Reinforcement Learning
-* Q1. 
+* Q1. Exploration - Running a random policy [__(Done)__](https://github.com/oldboy818/CS285/blob/main/hw5/cs285/agents/random_agent.py)
+* Q2. Exploration - Random Network Distillation [__(Done)__](https://github.com/oldboy818/CS285/blob/main/hw5/cs285/agents/rnd_agent.py)
+* Q3. Offline RL - CQL [__(Done)__](https://github.com/oldboy818/CS285/blob/main/hw5/cs285/agents/cql_agent.py)
+* Q4. Offline RL - Policy Constraint Methods: IQL and AWAC [__(Done)__](https://github.com/oldboy818/CS285/blob/main/hw5/cs285/agents/awac_agent.py) [__(Done)__](https://github.com/oldboy818/CS285/blob/main/hw5/cs285/agents/iql_agent.py)
+* Q5. Online Fine-Tuning
