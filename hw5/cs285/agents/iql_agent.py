@@ -38,7 +38,21 @@ class IQLAgent(AWACAgent):
         action_dist: Optional[torch.distributions.Categorical] = None,
     ):
         # TODO(student): Compute advantage with IQL
-        return ...
+        ################################################################################
+        with torch.no_grad():
+            # 각 상태(obs)에서 행동에 해당하는 Q값
+            # self.critic(obs): critic 신경망으로 관찰된 상태의 Q값을 계산. (batch_size, num_actions)
+            # actions.unsqueeze(1): 텐서 차원 늘림. (batch_size,) -> (batch_size, 1)
+            # gather(1, actions.unsqueeze(1)): 신경망 출력 Q값 중 각 상태에서 실제 행동에 해당하는 Q값만 선택. (batch_size, )
+            q_values = self.critic(observations).gather(1, actions.unsqueeze(1)).squeeze(1) # (batch_size, )
+            
+            # self.value_critic(obs): value critic 신경망으로 각 상태의 V값 계산. (batch_size, 1)
+            v_values = self.value_critic(observations).squeeze(1)   # (batch_size, )
+
+            # advantage 계산
+            advantages = q_values - v_values  # Advantage calculation
+        return advantages
+        ################################################################################
 
     def update_q(
         self,
@@ -52,8 +66,9 @@ class IQLAgent(AWACAgent):
         Update Q(s, a)
         """
         # TODO(student): Update Q(s, a) to match targets (based on V)
+        ################################################################################
         loss = ...
-
+        ################################################################################
         self.critic_optimizer.zero_grad()
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(
@@ -78,8 +93,10 @@ class IQLAgent(AWACAgent):
         Compute the expectile loss for IQL
         """
         # TODO(student): Compute the expectile loss
+        ################################################################################
+        
         return ...
-
+        ################################################################################
     def update_v(
         self,
         observations: torch.Tensor,
@@ -89,10 +106,14 @@ class IQLAgent(AWACAgent):
         Update the value network V(s) using targets Q(s, a)
         """
         # TODO(student): Compute target values for V(s)
+        ################################################################################
 
+        ################################################################################
         # TODO(student): Update V(s) using the loss from the IQL paper
+        ################################################################################
+        
         loss = ...
-
+        ################################################################################
         self.value_critic_optimizer.zero_grad()
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(
