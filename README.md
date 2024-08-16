@@ -13,9 +13,9 @@ Assignments for [Berkeley CS 285: Deep Reinforcement Learning, Decision Making, 
 * Q4: Advantage Normalization [__(Done)__](https://velog.io/@oldboy818/Policy-GradientsGeneralized-Advantage-EstimationCS285HW2)
 
 ### Assignment3 : Q-learning and Actor-Critic Algorithms
-* Q1. Q-learning
-* Q2. Actor-critic
-* Q3. Soft Actor-critic
+* Q1. Q-learning [__(Done)__](https://github.com/oldboy818/CS285/tree/main/hw3/data)
+* Q2. Actor-critic [__(Done)__](https://github.com/oldboy818/CS285/tree/main/hw3/data)
+* Q3. Soft Actor-critic [__(Done)__](https://github.com/oldboy818/CS285/tree/main/hw3/data)
 
 ### Assignment4 : Model-Based Reinforcement Learning
 * Q1.
