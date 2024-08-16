@@ -50,7 +50,7 @@ class IQLAgent(AWACAgent):
             v_values = self.value_critic(observations).squeeze(1)   # (batch_size, )
 
             # advantage 계산
-            advantages = q_values - v_values  # Advantage calculation
+            advantages = q_values - v_values
         return advantages
         ################################################################################
 
