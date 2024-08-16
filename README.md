@@ -18,7 +18,7 @@ Assignments for [Berkeley CS 285: Deep Reinforcement Learning, Decision Making, 
 * Q3. Soft Actor-critic [__(Done)__](https://github.com/oldboy818/CS285/tree/main/hw3/data)
 
 ### Assignment4 : Model-Based Reinforcement Learning
-
+* Q1. Model-based RL [__(Done)__](https://github.com/oldboy818/CS285/blob/main/hw4/cs285/agents/model_based_agent.py)
 
 ### Assignment5 : Exploration and Offline Reinforcement Learning
 * Q1. Exploration - Running a random policy [__(Done)__](https://github.com/oldboy818/CS285/blob/main/hw5/cs285/agents/random_agent.py)
