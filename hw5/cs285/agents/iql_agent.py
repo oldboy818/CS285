@@ -49,7 +49,7 @@ class IQLAgent(AWACAgent):
             # self.value_critic(obs): value critic 신경망으로 각 상태의 V값 계산. (batch_size, 1)
             v_values = self.value_critic(observations).squeeze(1)   # (batch_size, )
 
-            # advantage 계산
+            # advantage = Q(s,a) - V(s)
             advantages = q_values - v_values
         return advantages
         ################################################################################
@@ -67,8 +67,18 @@ class IQLAgent(AWACAgent):
         """
         # TODO(student): Update Q(s, a) to match targets (based on V)
         ################################################################################
-        loss = ...
+        with torch.no_grad():
+            # V(s')
+            target_v = self.target_value_critic(next_observations).squeeze(1)   # (batch_size, )
+            # Q(s, a) <-- r(s,a) + V(s')
+            target_q = rewards + (1.0 - dones.float()) * target_v
+        
+        # Q(s,a)
+        q_values = self.critic(observations).gather(1, actions.unsqueeze(1)).squeeze(1)
+        # MSE loss
+        loss = self.critic_loss(q_values, target_q)
         ################################################################################
+        
         self.critic_optimizer.zero_grad()
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(
@@ -77,12 +87,17 @@ class IQLAgent(AWACAgent):
         self.critic_optimizer.step()
 
         metrics = {
-            "q_loss": self.critic_loss(q_values, target_values).item(),
+            "q_loss": self.critic_loss(q_values, target_q).item(),
             "q_values": q_values.mean().item(),
-            "target_values": target_values.mean().item(),
+            "target_values": target_q.mean().item(),
             "q_grad_norm": grad_norm.item(),
         }
-
+        # metrics = {
+        #     "q_loss": loss.item(),
+        #     "q_values": q_values.mean().item(),
+        #     "target_values": target_q.mean().item(),
+        #     "q_grad_norm": grad_norm.item(),
+        # }
         return metrics
 
     @staticmethod
@@ -94,9 +109,17 @@ class IQLAgent(AWACAgent):
         """
         # TODO(student): Compute the expectile loss
         ################################################################################
+        # expectile loss = (1-tau) * x^2 (x>0), tau * x^2 (x<=0)
+
+        # x = V(s) - Q(s,a)
+        x = vs - target_qs
+        weight = torch.where(x > 0, expectile, 1 - expectile)
         
-        return ...
+        loss = weight * (x ** 2)
+
+        return loss.mean()
         ################################################################################
+    
     def update_v(
         self,
         observations: torch.Tensor,
@@ -107,12 +130,17 @@ class IQLAgent(AWACAgent):
         """
         # TODO(student): Compute target values for V(s)
         ################################################################################
-
+        with torch.no_grad():
+            # Q(s,a)
+            q_values = self.critic(observations).gather(1, actions.unsqueeze(1)).squeeze(1)
         ################################################################################
+
         # TODO(student): Update V(s) using the loss from the IQL paper
         ################################################################################
-        
-        loss = ...
+        # V(s)
+        v_values = self.value_critic(observations).squeeze(1)
+        # expectile loss (V(s), Q(s, a))
+        loss = self.iql_expectile_loss(self.expectile, v_values, q_values)
         ################################################################################
         self.value_critic_optimizer.zero_grad()
         loss.backward()
@@ -123,9 +151,9 @@ class IQLAgent(AWACAgent):
 
         return {
             "v_loss": loss.item(),
-            "vs_adv": (vs - target_values).mean().item(),
-            "vs": vs.mean().item(),
-            "target_values": target_values.mean().item(),
+            "vs_adv": (v_values - q_values).mean().item(),
+            "vs": v_values.mean().item(),
+            "target_values": q_values.mean().item(),
             "v_grad_norm": grad_norm.item(),
         }
 
