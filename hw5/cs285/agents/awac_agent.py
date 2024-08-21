@@ -31,27 +31,24 @@ class AWACAgent(DQNAgent):
         with torch.no_grad():
             # TODO(student): compute the actor distribution, then use it to compute E[Q(s, a)]
             ##################################################################################
-            # 다음 상태에서의 정책 분포. 즉, actor distribution
+            # 다음 상태에서의 정책 분포. 즉, actor distribution 그리고 다음 행동을 샘플링
             next_action_dist = self.actor(next_observations)
-            # 정책에서 샘플링된 액션으로 다음 상태에서의 Q 값 계산
-            next_qa_values = self.target_critic(next_observations)
+            next_action = next_action_dist.sample()
             
             # Use the actor to compute a critic backup
-            # 모든 가능한 행동에 대한 Q값을 정책 분포의 확률로 가중 평균된 Q값 계산
-            next_actions_probs = next_action_dist.probs # .probs : PyTorch 분포 객체의 확률 값을 반환
-            # compute E[Q(s', a')]
-            next_qs = torch.sum(next_actions_probs * next_qa_values, dim=-1)
+            # 정책에서 샘플링된 액션으로 다음 상태에서의 Q 값 계산
+            next_qa_values = self.target_critic(next_observations).gather(1, next_action.unsqueeze(-1)).squeeze(-1)
             ##################################################################################
             
             # TODO(student): Compute the TD target
             ##################################################################################
-            target_values = rewards + self.discount * next_qs * (dones)
+            target_values = rewards + (1.0 - dones.float()) * self.discount * next_qa_values
             ##################################################################################
         
         # TODO(student): Compute Q(s, a) and loss similar to DQN
         ##################################################################################
-        qa_values = self.critic(observations)
-        q_values = qa_values.gather(1, actions.unsqueeze(-1)).squeeze(-1)
+        # Q(s, a)
+        q_values = self.critic(observations).gather(1, actions.unsqueeze(-1)).squeeze(-1)
         assert q_values.shape == target_values.shape
 
         loss = self.critic_loss(q_values, target_values)
@@ -65,7 +62,7 @@ class AWACAgent(DQNAgent):
                 "target_values": target_values.mean().item(),
             },
             {
-                "qa_values": qa_values,
+                "qa_values": self.critic(observations),
                 "q_values": q_values,
             },
         )
@@ -83,9 +80,9 @@ class AWACAgent(DQNAgent):
         qa_values = self.critic(observations).gather(1, actions.unsqueeze(-1)).squeeze(-1)
         # 현재 정책 하의 Q 값의 기대값
         q_values = self.critic(observations)
-        values = torch.sum(action_dist.probs * q_values, dim=-1)
+        expected_q = torch.sum(action_dist.probs * q_values, dim=-1)
 
-        advantages = qa_values - values
+        advantages = qa_values - expected_q
         ##################################################################################
         return advantages
 

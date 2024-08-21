@@ -47,12 +47,14 @@ class RNDAgent(DQNAgent):
         """
         # TODO(student): update the RND network
         ############################################################
+        # target func f^(*)(s,a)
         target = self.rnd_target_net(obs)
+        # fitting func f_(theta)(s,a)
         pred = self.rnd_net(obs)
-        pred_error = torch.norm(pred - target, dim=-1)
-        loss = pred_error.mean()
+        # prediction error and loss
+        rnd_error = torch.norm(pred - target, dim=-1)
+        loss = torch.mean(rnd_error)
         ############################################################
-        
         self.rnd_optimizer.zero_grad()
         loss.backward()
         self.rnd_optimizer.step()
@@ -74,6 +76,7 @@ class RNDAgent(DQNAgent):
             target = self.rnd_target_net(next_observations)
             pred = self.rnd_net(next_observations)
             rnd_error = torch.norm(pred - target, dim=-1)
+            print(rewards.shape, rnd_error.shape)
             assert rnd_error.shape == rewards.shape
             rewards = rewards + self.rnd_weight * rnd_error
             ################################################################################

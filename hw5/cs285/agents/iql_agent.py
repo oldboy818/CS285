@@ -39,18 +39,18 @@ class IQLAgent(AWACAgent):
     ):
         # TODO(student): Compute advantage with IQL
         ################################################################################
-        with torch.no_grad():
-            # 각 상태(obs)에서 행동에 해당하는 Q값
-            # self.critic(obs): critic 신경망으로 관찰된 상태의 Q값을 계산. (batch_size, num_actions)
-            # actions.unsqueeze(1): 텐서 차원 늘림. (batch_size,) -> (batch_size, 1)
-            # gather(1, actions.unsqueeze(1)): 신경망 출력 Q값 중 각 상태에서 실제 행동에 해당하는 Q값만 선택. (batch_size, )
-            q_values = self.critic(observations).gather(1, actions.unsqueeze(1)).squeeze(1) # (batch_size, )
-            
-            # self.value_critic(obs): value critic 신경망으로 각 상태의 V값 계산. (batch_size, 1)
-            v_values = self.value_critic(observations).squeeze(1)   # (batch_size, )
-
-            # advantage = Q(s,a) - V(s)
-            advantages = q_values - v_values
+        # 각 상태(obs)에서 행동에 해당하는 Q값
+        # self.critic(obs): critic 신경망으로 관찰된 상태의 Q값을 계산. (batch_size, num_actions)
+        # actions.unsqueeze(1): 텐서 차원 늘림. (batch_size,) -> (batch_size, 1)
+        # gather(1, actions.unsqueeze(1)): 신경망 출력 Q값 중 각 상태에서 실제 행동에 해당하는 Q값만 선택. (batch_size, )
+        q_values = self.critic(observations).gather(1, actions.unsqueeze(1)).squeeze(1) # (batch_size, )
+        
+        # self.value_critic(obs): value critic 신경망으로 각 상태의 V값 계산. (batch_size, 1)
+        v_values = self.value_critic(observations).squeeze(1)   # (batch_size, )
+        # print("Q : \n", q_values.shape, "\nV : \n", v_values.shape)
+        # advantage = Q(s,a) - V(s)
+        advantages = q_values - v_values
+        
         return advantages
         ################################################################################
 
@@ -72,13 +72,15 @@ class IQLAgent(AWACAgent):
             target_v = self.target_value_critic(next_observations).squeeze(1)   # (batch_size, )
             # Q(s, a) <-- r(s,a) + V(s')
             target_q = rewards + (1.0 - dones.float()) * target_v
-        
+    
         # Q(s,a)
         q_values = self.critic(observations).gather(1, actions.unsqueeze(1)).squeeze(1)
+
+        # print("Q : \n", q_values, "\n target Q\n", target_q, "\nV: \n", target_v)
         # MSE loss
         loss = self.critic_loss(q_values, target_q)
         ################################################################################
-        
+
         self.critic_optimizer.zero_grad()
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(
@@ -113,8 +115,8 @@ class IQLAgent(AWACAgent):
 
         # x = V(s) - Q(s,a)
         x = vs - target_qs
-        weight = torch.where(x > 0, expectile, 1 - expectile)
-        
+        weight = torch.where(x > 0, 1 - expectile, expectile)
+        # print("X: \n", x, "\n weight : \n", weight)
         loss = weight * (x ** 2)
 
         return loss.mean()
@@ -142,6 +144,7 @@ class IQLAgent(AWACAgent):
         # expectile loss (V(s), Q(s, a))
         loss = self.iql_expectile_loss(self.expectile, v_values, q_values)
         ################################################################################
+        
         self.value_critic_optimizer.zero_grad()
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad.clip_grad_norm_(

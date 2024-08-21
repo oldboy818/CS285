@@ -48,18 +48,16 @@ class DQNAgent(nn.Module):
 
         # TODO(student): get the action from the critic using an epsilon-greedy strategy
         ########################################################################################################
-
         # Exploitation: choose the best action
-        if np.random.rand() > epsilon:
+        if np.random.random() >= epsilon:
             with torch.no_grad():
                 # get Q values from critic
                 q_values = self.critic(observation)
                 # get action that maximize Q values
                 action = torch.argmax(q_values, dim=1)
-        
         # Exploration: choose a random action
         else:
-            action = torch.tensor([np.random.randint(self.num_actions)])
+            action = np.random.randint(0, self.num_actions)
 
         return ptu.to_numpy(action).squeeze(0).item()
         ########################################################################################################
@@ -80,41 +78,36 @@ class DQNAgent(nn.Module):
          - metrics: dict, a dictionary of metrics to log
          - variables: dict, a dictionary of variables that can be used in subsequent calculations
         """
+        (batch_size,) = reward.shape
 
         # TODO(student): paste in your code from HW3, and make sure the return values exist
+        ##################################################################################        
+        qa_values = self.critic(obs)    # (batch, num_act)
+        q_values = qa_values.gather(1, action.unsqueeze(1)).squeeze(1)  # (batch, )
+
         # Compute target values
         with torch.no_grad():
-            # TODO(student): compute target values
-            ##################################################################################
+            # next Q(s) = target Q(s) value for target value Q(s,a)
             next_qa_values = self.target_critic(next_obs)   # (batch, num_act)
 
             if self.use_double_q:
-                # Compute Q-values for next states using main critic
-                next_qa_values_double = self.critic(next_obs)
-                # Select the best action indices based on main critic's output
-                next_action = torch.argmax(next_qa_values_double, dim=1)
-
+                # another Q(s,a)
+                next_action = torch.argmax(self.critic(next_obs), dim=1, keepdim=True) # (batch, 1)
             else:
-                next_action = torch.argmax(next_qa_values, dim=1)
+                next_action = torch.argmax(next_qa_values, dim=1, keepdim=True)  # (batch, 1)
 
-            # select corresponding Q values using max
-            next_q_values = next_qa_values.gather(1, next_action.unsqueeze(-1))   # (batch, )
-
-            # calculate target Q values for the current action
-            # 'done' 텐서를 float로 변환하고 차원을 맞춤
-            done = done.float().unsqueeze(-1)  # (batch, 1)
+            # next Q(s,a) = target value Q(s,a)
+            next_q_values = next_qa_values.gather(1, next_action).squeeze(1)   # (batch, )
+            assert next_q_values.shape == (batch_size, )    # (batch_size, )
             
-            # calculate target Q values for the current action
-            target_values = reward.unsqueeze(-1) + (1 - done) * self.discount * next_q_values   # (batch, 1)
-            ##################################################################################
-
-        # TODO(student): train the critic with the target values
-        ##################################################################################
-        qa_values = self.critic(obs)    # (batch, num_act)
-        # 'qa_values'의 dim=1 즉, 각 배치 사이즈의 액션 차원에 대해 action.unsqueeze(-1)이 제공하는 인덱스를 선택
-        q_values = qa_values.gather(1, action.unsqueeze(-1)) # Compute from the data actions; see torch.gather
-
+            target_values = reward + (1.0 - done.float()) * self.discount * next_q_values   # (batch, )
+            assert target_values.shape == (batch_size, )    # (batch_size, )
+            # print(next_qa_values, next_action, next_q_values)
+            
         loss = self.critic_loss(q_values, target_values)
+
+        # print("\n 타켓밸류 \n", target_values.shape, "\n 큐에이밸류 \n",qa_values.shape, "\n 큐밸류 \n", q_values.shape)
+        # print("\n 타켓밸류 \n", target_values, "\n 큐에이밸류 \n",qa_values, "\n 큐밸류 \n", q_values)
         ##################################################################################
         '''
         raise NotImplementedError
@@ -134,17 +127,18 @@ class DQNAgent(nn.Module):
         '''
         return (
             loss,
+            # metrics
             {
                 "critic_loss": loss.item(),
                 "q_values": q_values.mean().item(),
                 "target_values": target_values.mean().item(),
             },
+            # variables
             {
                 "qa_values": qa_values,
                 "q_values": q_values,
             },
         )
-
 
     def update_critic(
         self,

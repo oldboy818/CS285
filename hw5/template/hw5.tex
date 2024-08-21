@@ -239,7 +239,7 @@ Later, we'll use data collected from these exploration policies with several dif
 Just to get a sense for the three environments, implement \verb+get_action+ for the \verb+RandomAgent+ in \verb+random_agent.py+. Run the random policy to generate random exploration in each of the three environments:
 \begin{lstlisting}[language=bash]
 python cs285/scripts/run_hw5_explore.py \
-    -cfg experiments/exploration/pointmass_easy_random.yaml
+    -cfg experiments/exploration/pointmass_easy_random.yaml \
     --dataset_dir datasets/
 python cs285/scripts/run_hw5_explore.py \
     -cfg experiments/exploration/pointmass_medium_random.yaml \
@@ -260,7 +260,7 @@ The experiment logs contain visualizations of RND error computed at each point i
 First, make sure your RND implementation works in the easy environment. Then, run it in all three environments:
 \begin{lstlisting}[language=bash]
 python cs285/scripts/run_hw5_explore.py \
-    -cfg experiments/exploration/pointmass_easy_rnd.yaml
+    -cfg experiments/exploration/pointmass_easy_rnd.yaml \
     --dataset_dir datasets/
 python cs285/scripts/run_hw5_explore.py \
     -cfg experiments/exploration/pointmass_medium_rnd.yaml \

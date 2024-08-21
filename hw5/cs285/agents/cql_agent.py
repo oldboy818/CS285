@@ -49,18 +49,19 @@ class CQLAgent(DQNAgent):
         # loss = loss + ...
 
         # Q-values from variables
-        # qa_values : 데이터셋에서 state-action에 대한 Q, 
-        # q_values : 모든 가능한 action에 대한 Q
         qa_values = variables["qa_values"]  # (batch_size, num_actions)
         q_values = variables["q_values"]    # (batch_size, )
 
         # CQL regularization terms
         # log(sum_a{exp(q_values)})를 계산. 정책 \mu에 따른 Q값의 최대치를 계산
-        logsumexp_q = torch.logsumexp(q_values / self.cql_temperature, dim=1).mean()    # (batch_size, )
+        with torch.no_grad():
+            logsumexp_q = torch.logsumexp(qa_values / self.cql_temperature, dim=1)   # (batch_size, )
 
         # CQL loss 계산
         # Q값 최대치에서 데이터 내 Q값을 패널티로 부여하여 보수적 손실 계산
-        cql_loss = self.cql_alpha * (logsumexp_q * self.cql_temperature - qa_values).mean()
+        cql_loss = self.cql_alpha * (logsumexp_q * self.cql_temperature - q_values).mean()
+
+        # print("1111111111\n", qa_values,"\n2222222222\n", q_values,"\n33333333333\n", logsumexp_q,"\n4444444444\n", cql_loss)
 
         # 기존 손실에 CQL loss 추가. 즉, TD loss에 CQL loss 추가
         loss = loss + cql_loss
