@@ -55,11 +55,13 @@ class DQNAgent(nn.Module):
                 q_values = self.critic(observation)
                 # get action that maximize Q values
                 action = torch.argmax(q_values, dim=1)
+
+                action = ptu.to_numpy(action).squeeze(0).item()
         # Exploration: choose a random action
         else:
             action = np.random.randint(0, self.num_actions)
 
-        return ptu.to_numpy(action).squeeze(0).item()
+        return action
         ########################################################################################################
 
     def compute_critic_loss(
@@ -127,13 +129,11 @@ class DQNAgent(nn.Module):
         '''
         return (
             loss,
-            # metrics
             {
                 "critic_loss": loss.item(),
                 "q_values": q_values.mean().item(),
                 "target_values": target_values.mean().item(),
             },
-            # variables
             {
                 "qa_values": qa_values,
                 "q_values": q_values,

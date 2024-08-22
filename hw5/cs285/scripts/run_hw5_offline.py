@@ -67,10 +67,15 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             step,
         )
 
+        # if step % args.log_interval == 0:
+        #     for k, v in metrics.items():
+        #         logger.log_scalar(v, k, step)
         if step % args.log_interval == 0:
+            # print(f"Logging metrics at step {step}")  # 디버깅 출력
             for k, v in metrics.items():
                 logger.log_scalar(v, k, step)
-        
+                # print(f"Logged {k}: {v}")  # 로그 기록 후 출력
+
         if step % args.eval_interval == 0:
             # Evaluate
             trajectories = utils.sample_n_trajectories(

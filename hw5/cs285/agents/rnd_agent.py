@@ -76,8 +76,8 @@ class RNDAgent(DQNAgent):
             target = self.rnd_target_net(next_observations)
             pred = self.rnd_net(next_observations)
             rnd_error = torch.norm(pred - target, dim=-1)
-            print(rewards.shape, rnd_error.shape)
             assert rnd_error.shape == rewards.shape
+            
             rewards = rewards + self.rnd_weight * rnd_error
             ################################################################################
 
