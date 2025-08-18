@@ -46,10 +46,10 @@ class IQLAgent(AWACAgent):
             # gather(1, actions.unsqueeze(1)): 신경망 출력 Q값 중 각 상태에서 실제 행동에 해당하는 Q값만 선택. (batch_size, )
             # Q(s,a)
             q_values = self.critic(observations).gather(1, actions.unsqueeze(-1)).squeeze(-1) # (batch_size, )
-            
+
             # self.value_critic(obs): value critic 신경망으로 각 상태의 V값 계산. (batch_size, 1)
             # V(s)
-            v_values = self.value_critic(observations)   # (batch_size, )
+            v_values = self.value_critic(observations).squeeze(-1)   # (batch_size, )
             # advantage = Q(s,a) - V(s)
             advantages = q_values - v_values
         
@@ -71,7 +71,7 @@ class IQLAgent(AWACAgent):
         ################################################################################
         with torch.no_grad():
             # V(s')
-            target_v = self.target_value_critic(next_observations)   # (batch_size, )
+            target_v = self.target_value_critic(next_observations).squeeze(-1)   # (batch_size, )
             # Q(s, a) <-- r(s,a) + gamma * V(s')
             target_q = rewards + self.discount * (1.0 - dones.float()) * target_v
     
@@ -95,12 +95,6 @@ class IQLAgent(AWACAgent):
             "target_values": target_q.mean().item(),
             "q_grad_norm": grad_norm.item(),
         }
-        # metrics = {
-        #     "q_loss": loss.item(),
-        #     "q_values": q_values.mean().item(),
-        #     "target_values": target_q.mean().item(),
-        #     "q_grad_norm": grad_norm.item(),
-        # }
         return metrics
 
     @staticmethod
@@ -116,7 +110,7 @@ class IQLAgent(AWACAgent):
 
         # u = V(s) - Q(s,a)
         u = vs - target_qs
-        loss = torch.where(u < 0, (1 - expectile) * (u ** 2), expectile * (u ** 2))
+        loss = torch.where(u <= 0, (1 - expectile) * (u ** 2), expectile * (u ** 2))
 
         return loss.mean()
         ################################################################################
@@ -133,13 +127,15 @@ class IQLAgent(AWACAgent):
         ################################################################################
         with torch.no_grad():
             # Q(s,a)
-            q_values = self.critic(observations).max(dim=1)[0]
+            # q_values = self.critic(observations).max(dim=1)[0]
+            qa_value = self.critic(observations)
+            q_values = qa_value.gather(1, actions.unsqueeze(-1)).squeeze(-1)
         ################################################################################
 
         # TODO(student): Update V(s) using the loss from the IQL paper
         ################################################################################
         # V(s)
-        v_values = self.value_critic(observations)
+        v_values = self.value_critic(observations).squeeze(-1)
         # expectile loss (V(s), Q(s, a))
         loss = self.iql_expectile_loss(self.expectile, v_values, q_values)
         ################################################################################

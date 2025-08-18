@@ -60,21 +60,84 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
     for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
         # TODO(student): Borrow code from another online training script here. Only run the online training loop after `num_offline_steps` steps.
+        ########################################################################################################################
+        epsilon = exploration_schedule.value(step)
+        # offline RL
+        if step < num_offline_steps:
+            # loading an offline dataset
+            if step == 0:
+                with open(os.path.join(args.dataset_dir, f"{config['dataset_name']}.pkl"), "rb") as f:
+                    dataset = pickle.load(f)
+            # train with offline RL
+            batch = dataset.sample(config["batch_size"])
+            batch = {
+                k: ptu.from_numpy(v) if isinstance(v, np.ndarray) else v for k, v in batch.items()
+            }
+            update_info = agent.update(
+                batch["observations"],
+                batch["actions"],
+                batch["rewards"],
+                batch["next_observations"],
+                batch["dones"],
+                step,
+            )
+            # Only append non-None observations
+            if observation is not None:
+                recent_observations.append(observation)
+        # online fine-tuning
+        else:
+            if observation is None:
+                observation = env.reset()
 
-        # Main training loop
-        batch = replay_buffer.sample(config["batch_size"])
+            action = agent.get_action(observation, epsilon)
+            next_observation, reward, done, info = env.step(action)
 
-        # Convert to PyTorch tensors
-        batch = ptu.from_numpy(batch)
+            replay_buffer.insert(
+                observation=observation,
+                action=action,
+                reward=reward,
+                next_observation=next_observation,
+                done=done
+            )
 
-        update_info = agent.update(
-            batch["observations"],
-            batch["actions"],
-            batch["rewards"] * (1 if config.get("use_reward", False) else 0),
-            batch["next_observations"],
-            batch["dones"],
-            step,
-        )
+            # Only append non-None observations
+            if observation is not None:
+                recent_observations.append(observation)
+
+            if done:
+                observation = env.reset()
+            else:
+                observation = next_observation
+            
+            # Sample batch from the replay buffer and train the agent
+            batch = replay_buffer.sample(config["batch_size"])
+            # batch = {k: ptu.from_numpy(v) if isinstance(v, np.ndarray) else v for k, v in batch.items()}
+            batch = ptu.from_numpy(batch)
+
+            update_info = agent.update(
+                batch["observations"],
+                batch["actions"],
+                batch["rewards"],
+                batch["next_observations"],
+                batch["dones"],
+                step,
+            )
+
+        ########################################################################################################################
+        # # Main training loop
+        # batch = replay_buffer.sample(config["batch_size"])
+
+        # # Convert to PyTorch tensors
+        # batch = ptu.from_numpy(batch)
+
+        # update_info = agent.update(
+        #     batch["observations"],
+        #     batch["actions"],
+        #     batch["rewards"] * (1 if config.get("use_reward", False) else 0),
+        #     batch["next_observations"],
+        #     batch["dones"],
+        #     step,
+        # )
 
         # Logging code
         if epsilon is not None:
@@ -129,7 +192,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         env_pointmass, agent, replay_buffer.observations[: config["total_steps"]]
     )
     fig.suptitle("State coverage")
-    filename = os.path.join("exploration", f"{config['log_name']}.png")
+    filename = os.path.join("exploration_visualization", f"{config['log_name']}.png")
     fig.savefig(filename)
     print("Saved final heatmap to", filename)
 

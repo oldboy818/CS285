@@ -50,7 +50,7 @@ class DQNAgent(nn.Module):
         # TODO(student): get the action from the critic using an epsilon-greedy strategy
         ########################################################################################################
 
-        # Exploitation: choose the best action
+        # exploitation: choose the best action
         if np.random.rand() > epsilon:
             with torch.no_grad():
                 # get Q values from critic
@@ -58,7 +58,7 @@ class DQNAgent(nn.Module):
                 # get action that maximize Q values
                 action = torch.argmax(q_values, dim=1)
         
-        # Exploration: choose a random action
+        # exploration: choose a random action
         else:
             action = torch.tensor([np.random.randint(self.num_actions)])
 
@@ -81,19 +81,19 @@ class DQNAgent(nn.Module):
         with torch.no_grad():
             # TODO(student): compute target values
             ##################################################################################
-            next_qa_values = self.target_critic(next_obs)   # (batch, num_act)
+            next_qa_values = self.target_critic(next_obs)   # (batch, num_actions)
 
             if self.use_double_q:
-                # Compute Q-values for next states using main critic
+                # compute Q-values for next states using critic
                 next_qa_values_double = self.critic(next_obs)
-                # Select the best action indices based on main critic's output
+                # select the best action indices based on critic's output
                 next_action = torch.argmax(next_qa_values_double, dim=1)
 
             else:
-                next_action = torch.argmax(next_qa_values, dim=1)
+                next_action = torch.argmax(next_qa_values, dim=1)   # (batch, num_actions)
 
             # select corresponding Q values using max
-            next_q_values = next_qa_values.gather(1, next_action.unsqueeze(-1))   # (batch, )
+            next_q_values = next_qa_values.gather(1, next_action.unsqueeze(-1))   # (batch, 1)
 
             # calculate target Q values for the current action
             # 'done' 텐서를 float로 변환하고 차원을 맞춤
@@ -106,8 +106,10 @@ class DQNAgent(nn.Module):
         # TODO(student): train the critic with the target values
         ##################################################################################
         qa_values = self.critic(obs)    # (batch, num_act)
+
+        # Compute from the data actions; see torch.gather
         # 'qa_values'의 dim=1 즉, 각 배치 사이즈의 액션 차원에 대해 action.unsqueeze(-1)이 제공하는 인덱스를 선택
-        q_values = qa_values.gather(1, action.unsqueeze(-1)) # Compute from the data actions; see torch.gather
+        q_values = qa_values.gather(1, action.unsqueeze(-1)) # (batch, 1)
 
         loss = self.critic_loss(q_values, target_values)
         ##################################################################################

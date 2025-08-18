@@ -3,8 +3,8 @@ env_name: "PointmassHard-v0"
 exp_name: "pointmass_hard_iql"
 training_steps: 200000
 dataset_name: "pointmass_hard_rnd"
-expectile: 0.99
-temperature: 10.0
+expectile: 0.5
+temperature: 0.3
 
 hidden_size: 64
 num_layers: 2

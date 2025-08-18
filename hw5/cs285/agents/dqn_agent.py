@@ -104,12 +104,8 @@ class DQNAgent(nn.Module):
             
             target_values = reward + (1.0 - done.float()) * self.discount * next_q_values   # (batch, )
             assert target_values.shape == (batch_size, )    # (batch_size, )
-            # print(next_qa_values, next_action, next_q_values)
             
         loss = self.critic_loss(q_values, target_values)
-
-        # print("\n 타켓밸류 \n", target_values.shape, "\n 큐에이밸류 \n",qa_values.shape, "\n 큐밸류 \n", q_values.shape)
-        # print("\n 타켓밸류 \n", target_values, "\n 큐에이밸류 \n",qa_values, "\n 큐밸류 \n", q_values)
         ##################################################################################
         '''
         raise NotImplementedError
