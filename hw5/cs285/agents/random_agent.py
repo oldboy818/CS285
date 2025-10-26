@@ -1,7 +1,6 @@
 from typing import Tuple
 import numpy as np
 
-
 class RandomAgent:
     def __init__(self, observation_shape: Tuple[int, ...], num_actions: int):
         super().__init__()
@@ -9,7 +8,10 @@ class RandomAgent:
 
     def get_action(self, *args, **kwargs):
         # TODO(student): Return a random action
+        ############################################################
+        # np.random.randint(a, b): a에서 b-1 사이의 정수를 랜덤하게 반환
         return np.random.randint(0, self.num_actions)
+        ############################################################
     
     def update(self, *args, **kwargs):
         # Update is a no-op for the random agent

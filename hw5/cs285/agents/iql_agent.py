@@ -73,10 +73,10 @@ class IQLAgent(AWACAgent):
             # V(s')
             target_v = self.target_value_critic(next_observations).squeeze(-1)   # (batch_size, )
             # Q(s, a) <-- r(s,a) + gamma * V(s')
-            target_q = rewards + self.discount * (1.0 - dones.float()) * target_v
+            target_q = rewards + (1.0 - dones.float()) * self.discount * target_v   # (batch_size, )
     
         # Q(s,a)
-        q_values = self.critic(observations).gather(1, actions.unsqueeze(-1)).squeeze(-1)
+        q_values = self.critic(observations).gather(1, actions.unsqueeze(-1)).squeeze(-1)   # (batch_size, )
 
         # MSE loss
         loss = self.critic_loss(q_values, target_q)
@@ -109,10 +109,10 @@ class IQLAgent(AWACAgent):
         # expectile loss = (1-tau) * x^2 (x>0), tau * x^2 (x<=0)
 
         # u = V(s) - Q(s,a)
-        u = vs - target_qs
-        loss = torch.where(u <= 0, (1 - expectile) * (u ** 2), expectile * (u ** 2))
+        mu = vs - target_qs
+        loss = torch.where(mu <= 0, (1 - expectile) * (mu ** 2), expectile * (mu ** 2))
 
-        return loss.mean()
+        return loss
         ################################################################################
     
     def update_v(
@@ -126,18 +126,17 @@ class IQLAgent(AWACAgent):
         # TODO(student): Compute target values for V(s)
         ################################################################################
         with torch.no_grad():
-            # Q(s,a)
-            # q_values = self.critic(observations).max(dim=1)[0]
-            qa_value = self.critic(observations)
-            q_values = qa_value.gather(1, actions.unsqueeze(-1)).squeeze(-1)
+            # Q_{theta}(s,a)
+            qa_value = self.critic(observations)    # (batch_size, num_actions)
+            q_values = qa_value.gather(1, actions.unsqueeze(-1)).squeeze(-1)    #   (batch_size, )
         ################################################################################
 
         # TODO(student): Update V(s) using the loss from the IQL paper
         ################################################################################
-        # V(s)
-        v_values = self.value_critic(observations).squeeze(-1)
+        # V_{phi}(s)
+        v_values = self.value_critic(observations).squeeze(-1)  # (batch_size, )
         # expectile loss (V(s), Q(s, a))
-        loss = self.iql_expectile_loss(self.expectile, v_values, q_values)
+        loss = self.iql_expectile_loss(self.expectile, v_values, q_values).mean()
         ################################################################################
         
         self.value_critic_optimizer.zero_grad()

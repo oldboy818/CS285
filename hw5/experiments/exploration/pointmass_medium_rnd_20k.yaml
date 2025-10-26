@@ -1,0 +1,8 @@
+base_config: "rnd"
+env_name: "PointmassMedium-v0"
+exp_name: "rnd_medium_data_20k"
+rnd_weight: 1.0
+dataset_name: "pointmass_medium_rnd_20k"
+total_steps: 20000
+# [추가] log_name을 직접 지정하여 덮어쓰기 방지
+log_name: "rnd_medium_data_20k"

@@ -51,9 +51,8 @@ class RNDAgent(DQNAgent):
         target = self.rnd_target_net(obs)
         # fitting func f_(theta)(s,a)
         pred = self.rnd_net(obs)
-        # prediction error and loss
-        rnd_error = torch.norm(pred - target, dim=-1)
-        loss = torch.mean(rnd_error)
+        # prediction error and loss. torch.norm: L2 norm 계산
+        loss = torch.mean(torch.sum((pred - target) ** 2, dim=-1))
         ############################################################
         self.rnd_optimizer.zero_grad()
         loss.backward()
@@ -70,14 +69,21 @@ class RNDAgent(DQNAgent):
         dones: torch.Tensor,
         step: int,
     ):
+        """
+        RND bonus를 포함 전체 DQN 학습을 수행하면서 bonus를 계산하고 Q 네트워크와 RND 네트워크를 업데이트합니다.
+        """
         with torch.no_grad():
             # TODO(student): Compute RND bonus for batch and modify rewards
             ################################################################################
+            # 다음 상태 (s')에 대한 타겟과 예측값을 얻습니다.
             target = self.rnd_target_net(next_observations)
             pred = self.rnd_net(next_observations)
+
+            # RND 예측 오차 (L2 Norm): ||f_hat(s') - f*(s')|| = E_phi(s')
             rnd_error = torch.norm(pred - target, dim=-1)
             assert rnd_error.shape == rewards.shape
             
+            # 환경의 rewards와 RND의 exploration bonus를 합산하여 Q 네트워크 학습에 사용
             rewards = rewards + self.rnd_weight * rnd_error
             ################################################################################
 

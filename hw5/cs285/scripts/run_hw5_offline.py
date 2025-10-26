@@ -33,12 +33,15 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     ptu.init_gpu(use_gpu=not args.no_gpu, gpu_id=args.which_gpu)
 
     # make the gym environment
-    env = config["make_env"]()
+    env = config["make_env"]()  # 학습에 사용된 GYM 환경(ex. Pointmass) 생성
     discrete = isinstance(env.action_space, gym.spaces.Discrete)
 
     assert discrete, "DQN only supports discrete action spaces"
-
-    agent_cls = agents[config["agent"]]
+    
+    # DQNAgent, CQLAgent, IQLAgent, AWACAgent 클래스 가져옴
+    agent_cls = agents[config["agent"]] 
+    # CQLAgent 객체를 생성합니다. 이때 YAML 파일에 정의된 agent_kwargs
+    # (예: cql_alpha, hidden_size, learning_rate 등)이 에이전트 생성자에 전달됩니다.
     agent = agent_cls(
         env.observation_space.shape,
         env.action_space.n,
@@ -48,16 +51,20 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     ep_len = env.spec.max_episode_steps or env.max_episode_steps
 
     with open(os.path.join(args.dataset_dir, f"{config['dataset_name']}.pkl"), "rb") as f:
+        # exploration method에 따라 수집된 오프라인 데이터셋(pkl파일, config['dataset_name']) 로드
+        # 이 dataset 객체는 ReplayBuffer 클래스의 인스턴스이며, 수집한 모든 (s,a,r,s',dones)튜플들을 담고 있습니다.
         dataset = pickle.load(f)
 
     for step in tqdm.trange(config["training_steps"], dynamic_ncols=True):
         # Train with offline RL
-        batch = dataset.sample(config["batch_size"])
+        batch = dataset.sample(config["batch_size"])    # replay buffer에서 batch_size만큼 샘플링
 
+        # NumPy 배열에서 PyTorch 텐서로 변환
         batch = {
             k: ptu.from_numpy(v) if isinstance(v, np.ndarray) else v for k, v in batch.items()
         }
 
+        # XX-Agent의 update 메서드를 호출하여 에이전트의 신경망 파라미터를 업데이트
         metrics = agent.update(
             batch["observations"],
             batch["actions"],
@@ -67,12 +74,9 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             step,
         )
 
-        # if step % args.log_interval == 0:
-        #     for k, v in metrics.items():
-        #         logger.log_scalar(v, k, step)
         if step % args.log_interval == 0:
             # print(f"Logging metrics at step {step}")  # 디버깅 출력
-            for k, v in metrics.items():
+            for k, v in metrics.items():    # agent.update가 반환한 metrics (TD 손실, CQL 손실 등)를 로거를 통해 기록
                 logger.log_scalar(v, k, step)
                 # print(f"Logged {k}: {v}")  # 로그 기록 후 출력
 

@@ -1,0 +1,14 @@
+base_config: "cql"
+env_name: "PointmassMedium-v0"
+exp_name: "cql_medium_data_1k"
+use_double_q: true
+training_steps: 100000
+dataset_name: "pointmass_medium_rnd_1k"
+
+cql_alpha: 0.1
+
+hidden_size: 64
+num_layers: 2
+
+# [추가] log_name을 직접 지정하여 덮어쓰기 방지
+log_name: "cql_medium_data_1k"

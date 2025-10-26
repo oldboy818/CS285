@@ -59,85 +59,68 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     num_online_steps = config["total_steps"] - num_offline_steps
 
     for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
-        # TODO(student): Borrow code from another online training script here. Only run the online training loop after `num_offline_steps` steps.
+        # TODO(student): Borrow code from another online training script here. 
+        # Only run the online training loop after `num_offline_steps` steps.
         ########################################################################################################################
-        epsilon = exploration_schedule.value(step)
-        # offline RL
+        epsilon = None
+
         if step < num_offline_steps:
-            # loading an offline dataset
+            # ----- 오프라인 단계: 환경 상호작용 없이 버퍼 기반 업데이트만 수행 -----
+            # 오프라인 데이터셋은 처음 1회만 로드하여 버퍼에 적재
             if step == 0:
                 with open(os.path.join(args.dataset_dir, f"{config['dataset_name']}.pkl"), "rb") as f:
-                    dataset = pickle.load(f)
-            # train with offline RL
-            batch = dataset.sample(config["batch_size"])
-            batch = {
-                k: ptu.from_numpy(v) if isinstance(v, np.ndarray) else v for k, v in batch.items()
-            }
-            update_info = agent.update(
-                batch["observations"],
-                batch["actions"],
-                batch["rewards"],
-                batch["next_observations"],
-                batch["dones"],
-                step,
-            )
-            # Only append non-None observations
-            if observation is not None:
-                recent_observations.append(observation)
-        # online fine-tuning
-        else:
-            if observation is None:
-                observation = env.reset()
+                    dataset = pickle.load(f)  # dict: observations, actions, rewards, next_observations, dones (numpy)
 
-            action = agent.get_action(observation, epsilon)
+                replay_buffer = dataset  # ReplayBuffer 객체에 오프라인 데이터셋 할당
+
+            # 시각화를 위해 최근 관측 누적 (rollout은 하지 않지만 빈 배열 방지용)
+            recent_observations.append(observation)
+
+        else:
+            # ----- 온라인 파인튜닝 단계: 환경과 상호작용하며 동일 버퍼에 push -----
+            if exploration_schedule is not None:
+                epsilon = exploration_schedule.value(step)
+                action = agent.get_action(observation, epsilon)
+            else:
+                action = agent.get_action(observation)
+
             next_observation, reward, done, info = env.step(action)
+            next_observation = np.asarray(next_observation)
+            truncated = bool(info.get("TimeLimit.truncated", False))
 
             replay_buffer.insert(
                 observation=observation,
                 action=action,
                 reward=reward,
+                done=(done and not truncated),
                 next_observation=next_observation,
-                done=done
             )
+            recent_observations.append(observation)
 
-            # Only append non-None observations
-            if observation is not None:
-                recent_observations.append(observation)
-
+            # 에피소드 종료 처리 및 로그
             if done:
                 observation = env.reset()
+                if "episode" in info:
+                    logger.log_scalar(info["episode"]["r"], "train_return", step)
+                    logger.log_scalar(info["episode"]["l"], "train_ep_len", step)
             else:
                 observation = next_observation
-            
-            # Sample batch from the replay buffer and train the agent
-            batch = replay_buffer.sample(config["batch_size"])
-            # batch = {k: ptu.from_numpy(v) if isinstance(v, np.ndarray) else v for k, v in batch.items()}
-            batch = ptu.from_numpy(batch)
-
-            update_info = agent.update(
-                batch["observations"],
-                batch["actions"],
-                batch["rewards"],
-                batch["next_observations"],
-                batch["dones"],
-                step,
-            )
 
         ########################################################################################################################
-        # # Main training loop
-        # batch = replay_buffer.sample(config["batch_size"])
+        # Main training loop
+        batch = replay_buffer.sample(config["batch_size"])
 
-        # # Convert to PyTorch tensors
-        # batch = ptu.from_numpy(batch)
+        # Convert to PyTorch tensors
+        batch = ptu.from_numpy(batch)
 
-        # update_info = agent.update(
-        #     batch["observations"],
-        #     batch["actions"],
-        #     batch["rewards"] * (1 if config.get("use_reward", False) else 0),
-        #     batch["next_observations"],
-        #     batch["dones"],
-        #     step,
-        # )
+        update_info = agent.update(
+            batch["observations"],
+            batch["actions"],
+            batch["rewards"] * (1 if config.get("use_reward", False) else 0),
+            batch["next_observations"],
+            batch["dones"],
+            step,
+        )
 
         # Logging code
         if epsilon is not None:
@@ -188,11 +171,16 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         print("Saved dataset to", dataset_file)
 
     # Render final heatmap
-    fig = visualize(
-        env_pointmass, agent, replay_buffer.observations[: config["total_steps"]]
-    )
+    # visualize 함수에 환경, 에이전트, 그리고 replay_buffer에서 수집한 관측값 일부(total_steps까지) 를 넘겨, 
+    # 상태 방문 분포를 보여주는 그림(matplotlib.figure.Figure)을 생성
+    fig = visualize(env_pointmass, agent, replay_buffer.observations[:config["total_steps"]])
+    # 생성한 그림의 전체 제목을 “State coverage”로 설정합니다.
     fig.suptitle("State coverage")
+    # 시각화 결과를 저장할 PNG 파일 경로를 만듭니다. 기본 폴더는 exploration_visualization, 파일명은 설정값 log_name을 따릅니다.
     filename = os.path.join("exploration_visualization", f"{config['log_name']}.png")
+    # 필요한 디렉토리가 없으면 생성
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    # 위에서 만든 경로로 그림을 PNG 파일로 저장합니다.
     fig.savefig(filename)
     print("Saved final heatmap to", filename)
 

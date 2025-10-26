@@ -179,10 +179,17 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         pickle.dump(replay_buffer, f)
         print("Saved dataset to", dataset_file)
     
-    # Render final heatmap
+    ############### Render final heatmap ################
+    # visualize 함수에 환경, 에이전트, 그리고 replay_buffer에서 수집한 관측값 일부(total_steps까지) 를 넘겨, 
+    # 상태 방문 분포를 보여주는 그림(matplotlib.figure.Figure)을 생성
     fig = visualize(env_pointmass, agent, replay_buffer.observations[:config["total_steps"]])
+    # 생성한 그림의 전체 제목을 “State coverage”로 설정합니다.
     fig.suptitle("State coverage")
+    # 시각화 결과를 저장할 PNG 파일 경로를 만듭니다. 기본 폴더는 exploration_visualization, 파일명은 설정값 log_name을 따릅니다.
     filename = os.path.join("exploration_visualization", f"{config['log_name']}.png")
+    # 필요한 디렉토리가 없으면 생성
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    # 위에서 만든 경로로 그림을 PNG 파일로 저장합니다.
     fig.savefig(filename)
     print("Saved final heatmap to", filename)
     ########################################################
