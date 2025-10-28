@@ -109,8 +109,8 @@ class IQLAgent(AWACAgent):
         # expectile loss = (1-tau) * x^2 (x>0), tau * x^2 (x<=0)
 
         # u = V(s) - Q(s,a)
-        mu = vs - target_qs
-        loss = torch.where(mu <= 0, (1 - expectile) * (mu ** 2), expectile * (mu ** 2))
+        mu = target_qs - vs
+        loss = torch.where(mu >= 0, expectile * mu**2, (1 - expectile) * mu**2)
 
         return loss
         ################################################################################

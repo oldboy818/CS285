@@ -32,7 +32,7 @@ class AWACAgent(DQNAgent):
             # TODO(student): compute the actor distribution, then use it to compute E[Q(s, a)]
             ##################################################################################
             # compute Q values for next_observations using the critic
-            next_qa_values = self.critic(next_observations)     # (batch, num_act)
+            next_qa_values = self.target_critic(next_observations)     # (batch, num_act)
 
             # Use the actor to compute a critic backup
             # compute the actor distribution(policy) for next_observations
@@ -89,9 +89,8 @@ class AWACAgent(DQNAgent):
         # E[Q(s,a)] = V(s). 현재 정책 하의 Q 값의 기대값, 즉 V(s) 계산
         values = torch.sum(action_dist.probs * qa_values, dim=-1)   # (batch, )
 
-        # compute advantage A(s,a) = Q(s,a) - E[Q(s,a)] = Q - V & normalize
+        # compute advantage A(s,a) = Q(s,a) - E[Q(s,a)] = Q - V
         advantages = q_values - values
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
         ##################################################################################
         return advantages
 
