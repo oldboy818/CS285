@@ -84,10 +84,6 @@ class RNDAgent(DQNAgent):
             rnd_error = torch.norm(pred - target, dim=-1)   # (batch_size, )
             assert rnd_error.shape == rewards.shape
 
-            if rewards.dim() > 1:
-                rewards = rewards.squeeze(-1)                  # ← (B,1) 대비 가드
-            rewards = rewards.to(rnd_error.dtype)
-
             # 배치 단위 정규화 (Z-score) + 안정화 클리핑
             eps = 1e-8
             rnd_bonus = (rnd_error - rnd_error.mean()) / (rnd_error.std(unbiased=False) + eps)
