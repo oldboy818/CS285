@@ -62,11 +62,9 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         # TODO(student): Borrow code from another online training script here. 
         # Only run the online training loop after `num_offline_steps` steps.
         ########################################################################################################################
-        epsilon = None
-
         if step < num_offline_steps:
             # ----- 오프라인 단계: 환경 상호작용 없이 버퍼 기반 업데이트만 수행 -----
-            # 오프라인 데이터셋은 처음 1회만 로드하여 버퍼에 적재
+            # 오프라인 데이터셋은 처음 1회만 로드하여 버퍼에
             if step == 0:
                 with open(os.path.join(args.dataset_dir, f"{config['dataset_name']}.pkl"), "rb") as f:
                     dataset = pickle.load(f)  # dict: observations, actions, rewards, next_observations, dones (numpy)
@@ -78,10 +76,12 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
         else:
             # ----- 온라인 파인튜닝 단계: 환경과 상호작용하며 동일 버퍼에 push -----
+            t_online = step - num_offline_steps
             if exploration_schedule is not None:
-                epsilon = exploration_schedule.value(step)
+                epsilon = exploration_schedule.value(t_online)
                 action = agent.get_action(observation, epsilon)
             else:
+                epsilon = None
                 action = agent.get_action(observation)
 
             next_observation, reward, done, info = env.step(action)
@@ -118,7 +118,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         if step == 0:
             print({k: tuple(v.shape) for k, v in batch.items()})
         ###########################################################
-        
+
         update_info = agent.update(
             batch["observations"],
             batch["actions"],

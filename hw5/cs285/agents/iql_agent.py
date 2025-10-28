@@ -108,9 +108,9 @@ class IQLAgent(AWACAgent):
         ################################################################################
         # expectile loss = (1-tau) * x^2 (x>0), tau * x^2 (x<=0)
 
-        # u = V(s) - Q(s,a)
+        # u = Q(s,a) - V(s)
         mu = target_qs - vs
-        loss = torch.where(mu >= 0, expectile * mu**2, (1 - expectile) * mu**2)
+        loss = torch.where(mu >= 0, (1 - expectile) * mu**2, expectile * mu**2)
 
         return loss
         ################################################################################
@@ -120,7 +120,7 @@ class IQLAgent(AWACAgent):
         observations: torch.Tensor,
         actions: torch.Tensor,
     ):
-        """
+        """/
         Update the value network V(s) using targets Q(s, a)
         """
         # TODO(student): Compute target values for V(s)
