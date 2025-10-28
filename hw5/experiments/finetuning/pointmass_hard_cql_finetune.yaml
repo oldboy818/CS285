@@ -10,3 +10,5 @@ cql_alpha: 0.1
 
 hidden_size: 64
 num_layers: 2
+
+use_reward: true

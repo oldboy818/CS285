@@ -53,7 +53,7 @@ class RNDAgent(DQNAgent):
         # fitting func f_(theta)(s,a)
         pred = self.rnd_net(obs)
         # prediction error and loss. torch.norm: L2 norm 계산
-        loss = torch.mean(torch.sum((pred - target) ** 2, dim=-1))
+        loss = ((pred - target) ** 2).sum(dim=-1).mean() / target.size(-1)
         ############################################################
         self.rnd_optimizer.zero_grad()
         loss.backward()
@@ -84,6 +84,10 @@ class RNDAgent(DQNAgent):
             rnd_error = torch.norm(pred - target, dim=-1)   # (batch_size, )
             assert rnd_error.shape == rewards.shape
 
+            if rewards.dim() > 1:
+                rewards = rewards.squeeze(-1)                  # ← (B,1) 대비 가드
+            rewards = rewards.to(rnd_error.dtype)
+
             # 배치 단위 정규화 (Z-score) + 안정화 클리핑
             eps = 1e-8
             rnd_bonus = (rnd_error - rnd_error.mean()) / (rnd_error.std(unbiased=False) + eps)
@@ -96,7 +100,7 @@ class RNDAgent(DQNAgent):
         metrics = super().update(observations, actions, rewards, next_observations, dones, step)
 
         # Update the RND network.
-        rnd_loss = self.update_rnd(observations)
+        rnd_loss = self.update_rnd(next_observations)
         metrics["rnd_loss"] = rnd_loss
 
         return metrics

@@ -59,6 +59,12 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         # Train with offline RL
         batch = dataset.sample(config["batch_size"])    # replay buffer에서 batch_size만큼 샘플링
 
+        ###########################################################
+        # 데이터 shape 디버깅 출력. shape 확인하기 위함.
+        if step == 0:
+            print({k: tuple(v.shape) for k, v in batch.items()})
+        ###########################################################
+        
         # NumPy 배열에서 PyTorch 텐서로 변환
         batch = {
             k: ptu.from_numpy(v) if isinstance(v, np.ndarray) else v for k, v in batch.items()

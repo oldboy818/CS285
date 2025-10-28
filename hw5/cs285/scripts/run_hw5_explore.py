@@ -118,6 +118,12 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         # Main training loop
         batch = replay_buffer.sample(config["batch_size"])
 
+        ###########################################################
+        # 데이터 shape 디버깅 출력. shape 확인하기 위함.
+        if step == 0:
+            print({k: tuple(v.shape) for k, v in batch.items()})
+        ###########################################################
+        
         # Convert to PyTorch tensors
         batch = ptu.from_numpy(batch)
 
@@ -129,6 +135,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             batch["dones"],
             step,
         )
+
 
         # Logging code
         if epsilon is not None:

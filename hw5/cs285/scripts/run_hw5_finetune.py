@@ -113,10 +113,17 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         # Convert to PyTorch tensors
         batch = ptu.from_numpy(batch)
 
+        ###########################################################
+        # 데이터 shape 디버깅 출력. shape 확인하기 위함.
+        if step == 0:
+            print({k: tuple(v.shape) for k, v in batch.items()})
+        ###########################################################
+        
         update_info = agent.update(
             batch["observations"],
             batch["actions"],
-            batch["rewards"] * (1 if config.get("use_reward", False) else 0),
+            # batch["rewards"] * (1 if config.get("use_reward", False) else 0),
+            batch["rewards"],
             batch["next_observations"],
             batch["dones"],
             step,
